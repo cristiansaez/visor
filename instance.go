@@ -502,6 +502,10 @@ func (i *Instance) IsDone() (bool, error) {
 	return exists, nil
 }
 
+func (i *Instance) EnvString() string {
+	return fmt.Sprintf("%s:%s#%s", i.AppName, i.ProcessName, i.Env)
+}
+
 func (i *Instance) RevString() string {
 	return fmt.Sprintf("%s:%s@%s", i.AppName, i.ProcessName, i.RevisionName)
 }
