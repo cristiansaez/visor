@@ -515,7 +515,7 @@ func (i *Instance) RefString() string {
 }
 
 func (i *Instance) ServiceName() string {
-	return fmt.Sprintf("%s-%s", i.AppName, i.ProcessName)
+	return fmt.Sprintf("%s:%s", i.AppName, i.ProcessName)
 }
 
 func (i *Instance) Fields() string {
