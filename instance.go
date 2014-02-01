@@ -518,6 +518,10 @@ func (i *Instance) ServiceName() string {
 	return fmt.Sprintf("%s:%s", i.AppName, i.ProcessName)
 }
 
+func (i *Instance) WorkerId() string {
+	return fmt.Sprintf("%s-%s-%s-%d", i.AppName, i.ProcessName, i.RevisionName, i.Port)
+}
+
 func (i *Instance) Fields() string {
 	return fmt.Sprintf("%d %s %s %s %s %d %d", i.Id, i.AppName, i.RevisionName, i.ProcessName, i.Ip, i.Port, i.TelePort)
 }
