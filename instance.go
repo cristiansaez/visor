@@ -30,11 +30,6 @@ const (
 )
 
 const (
-	RestartFail = "restart-fail"
-	RestartOOM  = "restart-oom"
-)
-
-const (
 	restartFailField = 0
 	restartOOMField  = 1
 )
@@ -57,11 +52,9 @@ type InsRestarts struct {
 	OOM, Fail int
 }
 
-func (r *InsRestarts) Fields() []int {
+func (r InsRestarts) Fields() []int {
 	return []int{r.Fail, r.OOM}
 }
-
-type RestartReason string
 
 type Int64Slice []int64
 
@@ -82,7 +75,7 @@ type Instance struct {
 	TelePort     int
 	Host         string
 	Status       InsStatus
-	Restarts     *InsRestarts
+	Restarts     InsRestarts
 	Registered   time.Time
 	Claimed      time.Time
 }
@@ -122,7 +115,6 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 		Env:          env,
 		Status:       InsStatusPending,
 		dir:          cp.NewDir(instancePath(id), s.GetSnapshot()),
-		Restarts:     new(InsRestarts),
 	}
 
 	object := cp.NewFile(ins.dir.Prefix("object"), ins.objectArray(), new(cp.ListCodec), s.GetSnapshot())
@@ -270,7 +262,7 @@ func (i *Instance) Started(host, hostname string, port, telePort int) (*Instance
 }
 
 // Restarted tells the coordinator that the instance has been restarted.
-func (i *Instance) Restarted(reason RestartReason, count int) (*Instance, error) {
+func (i *Instance) Restarted(restarts InsRestarts) (*Instance, error) {
 	//
 	//   instances/
 	//       6868/
@@ -289,23 +281,19 @@ func (i *Instance) Restarted(reason RestartReason, count int) (*Instance, error)
 		return i, nil
 	}
 
-	restarts, f, err := i.getRestarts()
+	sp, err := i.GetSnapshot().FastForward()
+	if err != nil {
+		return i, err
+	}
+
+	f := cp.NewFile(i.dir.Prefix(restartsPath), nil, new(cp.ListIntCodec), sp)
+
+	f, err = f.Set(restarts.Fields())
 	if err != nil {
 		return nil, err
 	}
 
-	switch reason {
-	case RestartFail:
-		i.Restarts.Fail = restarts.Fail + count
-	case RestartOOM:
-		i.Restarts.OOM = restarts.OOM + count
-	}
-
-	f, err = f.Set(i.Restarts.Fields())
-	if err != nil {
-		return nil, err
-	}
-
+	i.Restarts = restarts
 	i.dir = i.dir.Join(f)
 
 	return i, nil
@@ -585,14 +573,15 @@ func (i *Instance) claimed(ip string) {
 	i.Status = InsStatusClaimed
 }
 
-func (i *Instance) getRestarts() (*InsRestarts, *cp.File, error) {
+func (i *Instance) getRestarts() (InsRestarts, *cp.File, error) {
+	var restarts InsRestarts
+
 	sp, err := i.GetSnapshot().FastForward()
 	if err != nil {
-		return nil, nil, err
+		return restarts, nil, err
 	}
 	i.dir = i.dir.Join(sp)
 
-	restarts := new(InsRestarts)
 	f, err := sp.GetFile(i.dir.Prefix(restartsPath), new(cp.ListIntCodec))
 	if err == nil {
 		fields := f.Value.([]int)
@@ -603,8 +592,9 @@ func (i *Instance) getRestarts() (*InsRestarts, *cp.File, error) {
 			restarts.OOM = fields[restartOOMField]
 		}
 	} else if !cp.IsErrNoEnt(err) {
-		return nil, nil, err
+		return restarts, nil, err
 	}
+
 	return restarts, f, nil
 }
 
