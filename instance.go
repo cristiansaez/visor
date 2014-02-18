@@ -587,10 +587,7 @@ func (i *Instance) getRestarts() (InsRestarts, *cp.File, error) {
 		fields := f.Value.([]int)
 
 		restarts.Fail = fields[restartFailField]
-
-		if len(fields) > 1 {
-			restarts.OOM = fields[restartOOMField]
-		}
+		restarts.OOM = fields[restartOOMField]
 	} else if !cp.IsErrNoEnt(err) {
 		return restarts, nil, err
 	}
