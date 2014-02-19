@@ -335,7 +335,7 @@ func TestInstanceRestarted(t *testing.T) {
 		t.Error("expected restart count to be 0")
 	}
 
-	ins1, err := ins.Restarted(RestartFail, 1)
+	ins1, err := ins.Restarted(InsRestarts{0, 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,7 +344,7 @@ func TestInstanceRestarted(t *testing.T) {
 		t.Error("expected restart count to be set to 1")
 	}
 
-	ins2, err := ins1.Restarted(RestartFail, 1)
+	ins2, err := ins1.Restarted(InsRestarts{0, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
