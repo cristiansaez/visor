@@ -115,10 +115,10 @@ func (s *Store) GetRunner(addr string) (*Runner, error) {
 	return getRunner(addr, sp)
 }
 
-func (s *Store) WatchRunnerStart(host string, ch chan *Runner, errch chan error) {
+func (s *Store) WatchRunnerStart(ch chan *Runner, errch chan error) {
 	var sp cp.Snapshotable = s
 	for {
-		ev, err := waitRunnersByHost(host, sp)
+		ev, err := waitRunners(sp)
 		if err != nil {
 			errch <- err
 			return
@@ -139,10 +139,10 @@ func (s *Store) WatchRunnerStart(host string, ch chan *Runner, errch chan error)
 	}
 }
 
-func (s *Store) WatchRunnerStop(host string, ch chan string, errch chan error) {
+func (s *Store) WatchRunnerStop(ch chan string, errch chan error) {
 	var sp cp.Snapshotable = s
 	for {
-		ev, err := waitRunnersByHost(host, sp)
+		ev, err := waitRunners(sp)
 		if err != nil {
 			errch <- err
 			return
@@ -182,9 +182,9 @@ func getRunner(addr string, s cp.Snapshotable) (*Runner, error) {
 	return storeFromSnapshotable(sp).NewRunner(addr, insId), nil
 }
 
-func waitRunnersByHost(host string, s cp.Snapshotable) (cp.Event, error) {
+func waitRunners(s cp.Snapshotable) (cp.Event, error) {
 	sp := s.GetSnapshot()
-	return sp.Wait(path.Join(runnersPath, host, "*"))
+	return sp.Wait(path.Join(runnersPath, "*", "*"))
 }
 
 func runnerAddr(host, port string) string {

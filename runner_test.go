@@ -124,7 +124,7 @@ func TestWatchRunnerStart(t *testing.T) {
 	ch := make(chan *Runner)
 	errch := make(chan error)
 
-	go s.WatchRunnerStart("127.0.0.1", ch, errch)
+	go s.WatchRunnerStart(ch, errch)
 
 	r := s.NewRunner(addr, insId)
 	r1, err := r.Register()
@@ -153,7 +153,7 @@ func TestWatchRunnerStop(t *testing.T) {
 	ch := make(chan string)
 	errch := make(chan error)
 
-	go s.WatchRunnerStop("127.0.0.1", ch, errch)
+	go s.WatchRunnerStop(ch, errch)
 
 	r := s.NewRunner(addr, insId)
 	r1, err := r.Register()
