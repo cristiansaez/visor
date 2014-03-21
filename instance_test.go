@@ -7,8 +7,11 @@ package visor
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 func instanceSetup() *Store {
@@ -383,6 +386,34 @@ func TestInstanceFailed(t *testing.T) {
 
 	// Note: we do not test whether or not failed instances can be retrieved
 	// here. See the proc tests & (*Proc).GetFailedInstances()
+}
+
+func TestPendingInstanceFailed(t *testing.T) {
+	var (
+		store = instanceSetup()
+
+		ins1, _ = store.RegisterInstance("bat", "128af9", "web", "default")
+		ins2, _ = store.GetInstance(ins1.Id)
+	)
+
+	if _, err := ins1.Failed("9.9.9.8", errors.New("fail1")); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := ins2.Failed("9.9.9.9", errors.New("fail2"))
+	if !cp.IsErrRevMismatch(err) {
+		t.Fatalf("expected REV_MISMATCH, got: %q", err)
+	}
+
+	ins, _ := store.GetInstance(ins1.Id)
+
+	if ins.Status != InsStatusFailed {
+		t.Fatalf("expected status to be failed, got %q", ins.Status)
+	}
+
+	if info, _ := ins.GetStatusInfo(); strings.Contains(info, "fail2") {
+		t.Fatalf("expected info not to include 'fail2', got %q", info)
+	}
 }
 
 func TestInstanceLost(t *testing.T) {

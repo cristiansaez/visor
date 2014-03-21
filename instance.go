@@ -317,18 +317,27 @@ func (i *Instance) Stop() error {
 	return nil
 }
 
+// Failed transitions the instance to failed.
+// It returns ErrUnauthorized if the instance status is not pending and was not
+// claimed by host.
+// It returns a revision mismatch error if the status is pending, but another
+// caller has already failed this instance.
 func (i *Instance) Failed(host string, reason error) (*Instance, error) {
-	err := i.verifyClaimer(host)
-	if err != nil {
-		return nil, err
-	}
-	current := i.Status
+	var (
+		status  = i.Status
+		message = fmt.Sprintf("%s %s", timestamp(), reason)
+	)
 
-	_, err = i.updateStatus(InsStatusFailed)
-	if err != nil {
+	if status != InsStatusPending {
+		if err := i.verifyClaimer(host); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := i.updateStatus(InsStatusFailed); err != nil {
 		return nil, err
 	}
-	return i.updateLookup(current, InsStatusFailed, fmt.Sprintf("%s %s", timestamp(), reason))
+	return i.updateLookup(status, InsStatusFailed, message)
 }
 
 // Lost transitions the instance into lost state and updates the
