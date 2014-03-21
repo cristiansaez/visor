@@ -53,6 +53,10 @@ func TestScaleErrors(t *testing.T) {
 	if err == nil {
 		t.Error("expected error (bad arguments)")
 	}
+	_, _, err = s.Scale(app.Name, rev.Ref, proc.Name, "fnord", scale)
+	if err == nil {
+		t.Error("expected error (bad arguments)")
+	}
 }
 
 func TestScaleUp(t *testing.T) {
