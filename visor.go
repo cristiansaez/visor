@@ -130,6 +130,13 @@ func (s *Store) Scale(app, rev, proc, env string, factor int) (tickets []*Instan
 	if !exists {
 		return nil, -1, errorf(ErrNotFound, "proc '%s' not found", proc)
 	}
+	exists, _, err = sp.Exists(path.Join(appsPath, app, envsPath, env))
+	if err != nil {
+		return
+	}
+	if !exists {
+		return nil, -1, errorf(ErrNotFound, "env '%s' not found", env)
+	}
 
 	s.snapshot = sp
 
