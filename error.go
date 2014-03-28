@@ -36,48 +36,49 @@ func (e *Error) Error() string {
 	return e.Message
 }
 
-func IsErrConflict(e error) bool {
-	return e.(*Error).Err == ErrConflict
+func unwrapErr(err error) error {
+	switch e := err.(type) {
+	case *cp.Error:
+		return e.Err
+	case *Error:
+		return e.Err
+	}
+
+	return err
+}
+
+func IsErrConflict(err error) bool {
+	return unwrapErr(err) == ErrConflict
 }
 
 func IsErrUnauthorized(err error) bool {
-	switch pe := err.(type) {
-	case nil:
-		return false
-	case *Error:
-		err = pe.Err
-	}
-	return err == ErrUnauthorized
+	return unwrapErr(err) == ErrUnauthorized
 }
 
-func IsErrNotFound(e error) bool {
-	switch e.(type) {
-	case *cp.Error:
-		return e.(*cp.Error).Err == cp.ErrNoEnt
-	case *Error:
-		return e.(*Error).Err == ErrNotFound
-	}
-	return false
+func IsErrNotFound(err error) bool {
+	err = unwrapErr(err)
+
+	return err == cp.ErrNoEnt || err == ErrNotFound
 }
 
-func IsErrInsClaimed(e error) bool {
-	return e.(*Error).Err == ErrInsClaimed
+func IsErrInsClaimed(err error) bool {
+	return unwrapErr(err) == ErrInsClaimed
 }
 
-func IsErrInvalidState(e error) bool {
-	return e == ErrInvalidState
+func IsErrInvalidState(err error) bool {
+	return err == ErrInvalidState
 }
 
-func IsErrInvalidFile(e error) bool {
-	return e.(*Error).Err == ErrInvalidFile
+func IsErrInvalidFile(err error) bool {
+	return unwrapErr(err) == ErrInvalidFile
 }
 
-func IsErrInvalidArgument(e error) bool {
-	return e.(*Error).Err == ErrInvalidArgument
+func IsErrInvalidArgument(err error) bool {
+	return unwrapErr(err) == ErrInvalidArgument
 }
 
-func IsErrInvalidKey(e error) bool {
-	return e.(*Error).Err == ErrInvalidKey
+func IsErrInvalidKey(err error) bool {
+	return unwrapErr(err) == ErrInvalidKey
 }
 
 func errorf(err error, format string, args ...interface{}) *Error {
