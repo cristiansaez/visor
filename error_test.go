@@ -63,6 +63,7 @@ func TestIsErrInvalidState(t *testing.T) {
 		{errors.New("error"), false},
 		{cp.NewError(cp.ErrBadPath, "bad path"), false},
 		{ErrInvalidState, true},
+		{NewError(ErrInvalidState, "invalid state"), true},
 	})
 }
 

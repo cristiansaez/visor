@@ -66,7 +66,7 @@ func IsErrInsClaimed(err error) bool {
 }
 
 func IsErrInvalidState(err error) bool {
-	return err == ErrInvalidState
+	return unwrapErr(err) == ErrInvalidState
 }
 
 func IsErrInvalidFile(err error) bool {
