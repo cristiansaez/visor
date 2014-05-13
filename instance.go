@@ -62,22 +62,30 @@ func (p Int64Slice) Len() int           { return len(p) }
 func (p Int64Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p Int64Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
+// Termination represents extra information for an Instance termination.
+type Termination struct {
+	Client string    `json:"client"`
+	Reason string    `json:"reason"`
+	Time   time.Time `json:"time"`
+}
+
 // Instance represents service instances.
 type Instance struct {
 	dir          *cp.Dir
-	Id           int64
-	AppName      string
-	RevisionName string
-	ProcessName  string
-	Env          string
-	Ip           string
-	Port         int
-	TelePort     int
-	Host         string
-	Status       InsStatus
-	Restarts     InsRestarts
-	Registered   time.Time
-	Claimed      time.Time
+	Id           int64       `json:"id"`
+	AppName      string      `json:"app"`
+	RevisionName string      `json:"rev"`
+	ProcessName  string      `json:"proc"`
+	Env          string      `json:"env"`
+	Ip           string      `json:"ip"`
+	Port         int         `json:"port"`
+	TelePort     int         `json:"telePort"`
+	Host         string      `json:"host"`
+	Status       InsStatus   `json:"status"`
+	Restarts     InsRestarts `json:"restarts"`
+	Registered   time.Time   `json:"registered"`
+	Claimed      time.Time   `json:"claimed"`
+	Termination  Termination `json:"termination,omitempty"`
 }
 
 func (i *Instance) GetSnapshot() cp.Snapshot {
@@ -91,6 +99,46 @@ func (s *Store) GetInstance(id int64) (ins *Instance, err error) {
 		return
 	}
 	return getInstance(id, sp)
+}
+
+// GetSerialisedInstance returns an instance for the given id and status.
+func (s *Store) GetSerialisedInstance(
+	app, proc string,
+	id int64,
+	status InsStatus,
+) (*Instance, error) {
+	sp, err := s.GetSnapshot().FastForward()
+	if err != nil {
+		return nil, err
+	}
+	return getSerialisedInstance(app, proc, id, status, sp)
+}
+
+func getSerialisedInstance(
+	app, proc string,
+	id int64,
+	status InsStatus,
+	sp cp.Snapshot,
+) (*Instance, error) {
+	var (
+		ins = &Instance{}
+		c   = &cp.JsonCodec{
+			DecodedVal: ins,
+		}
+
+		i = &Instance{
+			Id:          id,
+			AppName:     app,
+			ProcessName: proc,
+		}
+	)
+
+	_, err := sp.GetFile(i.procStatusPath(status), c)
+	if err != nil {
+		return nil, err
+	}
+
+	return ins, nil
 }
 
 func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err error) {
@@ -144,7 +192,7 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 }
 
 func (i *Instance) Unregister(client string, reason error) error {
-	i, err := i.updateLookup(i.Status, InsStatusDone, fmt.Sprintf("%s %s %s", timestamp(), client, reason))
+	i, err := i.updateLookup(i.Status, InsStatusDone, client, reason)
 	if err != nil {
 		return err
 	}
@@ -323,10 +371,7 @@ func (i *Instance) Stop() error {
 // It returns a revision mismatch error if the status is pending, but another
 // caller has already failed this instance.
 func (i *Instance) Failed(host string, reason error) (*Instance, error) {
-	var (
-		status  = i.Status
-		message = fmt.Sprintf("%s %s", timestamp(), reason)
-	)
+	status := i.Status
 
 	if status != InsStatusPending {
 		if err := i.verifyClaimer(host); err != nil {
@@ -337,7 +382,7 @@ func (i *Instance) Failed(host string, reason error) (*Instance, error) {
 	if _, err := i.updateStatus(InsStatusFailed); err != nil {
 		return nil, err
 	}
-	return i.updateLookup(status, InsStatusFailed, message)
+	return i.updateLookup(status, InsStatusFailed, host, reason)
 }
 
 // Lost transitions the instance into lost state and updates the
@@ -349,7 +394,7 @@ func (i *Instance) Lost(client string, reason error) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	return i.updateLookup(current, InsStatusLost, fmt.Sprintf("%s %s %s", timestamp(), client, reason))
+	return i.updateLookup(current, InsStatusLost, client, reason)
 }
 
 // Exited tells the coordinator that the instance has exited.
@@ -678,13 +723,38 @@ func (i *Instance) procStatusPath(status InsStatus) string {
 	}
 }
 
-func (i *Instance) updateLookup(from, to InsStatus, value string) (*Instance, error) {
-	sp, err := i.GetSnapshot().Set(i.procStatusPath(to), value)
+func (i *Instance) updateLookup(
+	from, to InsStatus,
+	client string,
+	reason error,
+) (*Instance, error) {
+	i.Termination = Termination{
+		Client: client,
+		Reason: reason.Error(),
+		Time:   time.Now(),
+	}
+
+	sp, err := i.GetSnapshot().FastForward()
 	if err != nil {
 		return nil, err
 	}
 
-	i.dir = i.dir.Join(sp)
+	if from == InsStatusFailed || from == InsStatusLost {
+		ins, err := getSerialisedInstance(i.AppName, i.ProcessName, i.Id, from, sp)
+		if err != nil {
+			return nil, err
+		}
+
+		i.Termination = ins.Termination
+	}
+
+	f := cp.NewFile(sp.Prefix(i.procStatusPath(to)), i, new(cp.JsonCodec), sp)
+	f, err = f.Save()
+	if err != nil {
+		return nil, err
+	}
+
+	i.dir = i.dir.Join(f)
 
 	err = i.dir.Snapshot.Del(i.procStatusPath(from))
 	if err != nil {

@@ -109,6 +109,10 @@ func (p *Proc) instancesPath() string {
 	return p.dir.Prefix(instancesPath)
 }
 
+func (p *Proc) doneInstancesPath() string {
+	return p.dir.Prefix(donePath)
+}
+
 func (p *Proc) failedInstancesPath() string {
 	return p.dir.Prefix(failedPath)
 }
@@ -138,6 +142,21 @@ func (p *Proc) NumInstances() (int, error) {
 	return total, nil
 }
 
+// GetDoneInstances returns all instances that were unregistered for this proc.
+// As those Instances are reconstructed from serialised state it should be
+// avoided to operate on those.
+func (p *Proc) GetDoneInstances() ([]*Instance, error) {
+	sp, err := p.GetSnapshot().FastForward()
+	if err != nil {
+		return nil, err
+	}
+	ids, err := sp.Getdir(p.doneInstancesPath())
+	if err != nil {
+		return nil, err
+	}
+	return getSerialisedInstances(ids, InsStatusDone, p, sp)
+}
+
 func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -147,7 +166,7 @@ func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getProcInstances(ids, sp)
+	return getSerialisedInstances(ids, InsStatusFailed, p, sp)
 }
 
 func (p *Proc) GetLostInstances() ([]*Instance, error) {
@@ -159,7 +178,7 @@ func (p *Proc) GetLostInstances() ([]*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getProcInstances(ids, sp)
+	return getSerialisedInstances(ids, InsStatusLost, p, sp)
 }
 
 func (p *Proc) GetInstances() ([]*Instance, error) {
@@ -291,6 +310,30 @@ func getProcInstanceIds(p *Proc, s cp.Snapshotable) ([]int64, error) {
 		ids = append(ids, iids...)
 	}
 	return ids, nil
+}
+
+func getSerialisedInstances(
+	ids []string,
+	state InsStatus,
+	p *Proc,
+	sp cp.Snapshot,
+) ([]*Instance, error) {
+	is := []*Instance{}
+	for _, idstr := range ids {
+		id, err := parseInstanceId(idstr)
+		if err != nil {
+			return nil, err
+		}
+
+		ins, err := getSerialisedInstance(p.App.Name, p.Name, id, state, sp)
+		if err != nil {
+			return nil, err
+		}
+
+		is = append(is, ins)
+	}
+
+	return is, nil
 }
 
 func claimNextPort(s cp.Snapshot) (int, error) {

@@ -131,6 +131,54 @@ func TestProcGetInstances(t *testing.T) {
 	}
 }
 
+func TestProcGetDoneInstances(t *testing.T) {
+	var (
+		appid  = "get-done-instances-app"
+		s, app = procSetup(appid)
+		host   = "10.0.2.12"
+	)
+
+	proc, err := s.NewProc(app, "worker").Register()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	is := []*Instance{}
+
+	for i := 0; i < 13; i++ {
+		ins, err := s.RegisterInstance(appid, "643asd3", "worker", "prod")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ins, err = ins.Claim(host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ins, err = ins.Started(host, appid+".org", 9898, 9899)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ins, err = ins.Exited(host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = ins.Unregister("proc-test", errors.New("done here."))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		is = append(is, ins)
+	}
+
+	done, err := proc.GetDoneInstances()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(done) != len(is) {
+		t.Errorf("wrong number of done instances returned: %d != %d", len(done), len(is))
+	}
+}
+
 func TestProcGetFailedInstances(t *testing.T) {
 	appid := "get-failed-instances-app"
 	s, app := procSetup(appid)
