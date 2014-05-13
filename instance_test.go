@@ -7,6 +7,7 @@ package visor
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -603,6 +604,40 @@ func TestInstanceLocking(t *testing.T) {
 	}
 	if locked {
 		t.Error("expected instance to not be locked")
+	}
+}
+
+func TestInstanceSerialisation(t *testing.T) {
+	var (
+		ip  = "10.0.10.3"
+		s   = instanceSetup()
+		ins = instanceSetupClaimed("extra-done", ip)
+	)
+
+	ins, err := ins.Started(ip, "box02.vm", 7777, 7778)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ins.Unregister("test-client", errors.New("done with this"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err = s.FastForward()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ins1, err := s.GetSerialisedInstance(ins.AppName, ins.ProcessName, ins.Id, InsStatusDone)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ins1.dir = ins.dir
+
+	if !reflect.DeepEqual(ins, ins1) {
+		t.Errorf("serialised instance doesn't match original:\n%#v\n%#v", ins, ins1)
 	}
 }
 
