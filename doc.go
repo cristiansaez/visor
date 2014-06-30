@@ -50,17 +50,6 @@ Working with Snapshots
   apps, _ := visor.Apps(snapshot)
   app := apps[0] // app.Rev == snapshot.Rev == 1
 
-  // Set some environment vars on *app*. Every time state is
-  // changed in the coordinator, a new App snapshot is returned.
-  app, _ = app.SetEnvironmentVar("cow", "moo")  // app.Rev == 2
-  app, _ = app.SetEnvironmentVar("cat", "meow") // app.Rev == 3
-
-  // Attempt to get a recently set environment var from an old snapshot (apps[0].Rev == 1)
-  apps[0].GetEnvironmentVar("cat") // "", ErrKeyNotFound
-
-  // Get a recently set environment var from the latest snapshot (app.Rev == 3)
-  app.GetEnvironmentVar("cat")     // "meow", nil
-
 Watching for Events
 
   package main

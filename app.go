@@ -9,7 +9,6 @@ import (
 	"fmt"
 	cp "github.com/soundcloud/cotterpin"
 	"path"
-	"strings"
 	"time"
 )
 
@@ -72,13 +71,6 @@ func (a *App) Register() (*App, error) {
 
 	a.dir = a.dir.Join(sp)
 
-	for k, v := range a.Env {
-		_, err = a.SetEnvironmentVar(k, v)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	reg := time.Now()
 	d, err := a.dir.Set(registeredPath, formatTime(reg))
 	if err != nil {
@@ -116,100 +108,6 @@ func (a *App) SetHead(head string) (*App, error) {
 	a.Head = head
 	a.dir = d
 
-	return a, nil
-}
-
-// EnvironmentVars returns all set variables for this app as a map.
-func (a *App) EnvironmentVars() (vars map[string]string, err error) {
-	vars = map[string]string{}
-
-	sp, err := a.GetSnapshot().FastForward()
-	if err != nil {
-		return vars, err
-	}
-	names, err := sp.Getdir(a.dir.Prefix("env"))
-	if err != nil {
-		if cp.IsErrNoEnt(err) {
-			err = nil
-		}
-		return
-	}
-	a.dir = a.dir.Join(sp)
-
-	type resp struct {
-		key, val string
-		err      error
-	}
-	ch := make(chan resp, len(names))
-
-	if err != nil {
-		if cp.IsErrNoEnt(err) {
-			return vars, nil
-		} else {
-			return
-		}
-	}
-
-	for _, name := range names {
-		go func(name string) {
-			v, err := a.GetEnvironmentVar(name)
-			if err != nil {
-				ch <- resp{err: err}
-			} else {
-				ch <- resp{key: name, val: v}
-			}
-		}(name)
-	}
-	for i := 0; i < len(names); i++ {
-		r := <-ch
-		if r.err != nil {
-			return nil, err
-		} else {
-			vars[strings.Replace(r.key, "-", "_", -1)] = r.val
-		}
-	}
-	return
-}
-
-// GetEnvironmentVar returns the value stored for the given key.
-func (a *App) GetEnvironmentVar(k string) (value string, err error) {
-	k = strings.Replace(k, "_", "-", -1)
-	val, _, err := a.dir.Get("env/" + k)
-	if err != nil {
-		if cp.IsErrNoEnt(err) {
-			err = errorf(ErrNotFound, `"%s" not found in %s's environment`, k, a.Name)
-		}
-		return
-	}
-	value = string(val)
-
-	return
-}
-
-// SetEnvironmentVar stores the value for the given key.
-func (a *App) SetEnvironmentVar(k string, v string) (*App, error) {
-	d, err := a.dir.Set("env/"+strings.Replace(k, "_", "-", -1), v)
-	if err != nil {
-		return nil, err
-	}
-	if _, present := a.Env[k]; !present {
-		a.Env[k] = v
-	}
-	a.dir = d
-	return a, nil
-}
-
-// DelEnvironmentVar removes the env variable for the given key.
-func (a *App) DelEnvironmentVar(k string) (*App, error) {
-	err := a.dir.Del("env/" + strings.Replace(k, "_", "-", -1))
-	if err != nil {
-		return nil, err
-	}
-	sp, err := a.dir.Snapshot.FastForward()
-	if err != nil {
-		return nil, err
-	}
-	a.dir = a.dir.Join(sp)
 	return a, nil
 }
 

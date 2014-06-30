@@ -64,30 +64,6 @@ func TestAppRegistration(t *testing.T) {
 	}
 }
 
-func TestEnvPersistenceOnRegister(t *testing.T) {
-	_, app := appSetup("envyapp")
-
-	app.Env["VAR1"] = "VAL1"
-	app.Env["VAR2"] = "VAL2"
-
-	app, err := app.Register()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	env, err := app.EnvironmentVars()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	for key, val := range app.Env {
-		if env[key] != val {
-			t.Errorf("%s should be '%s', got '%s'", key, val, env[key])
-		}
-	}
-}
-
 func TestAppUnregister(t *testing.T) {
 	_, app := appSetup("dog")
 
@@ -138,74 +114,6 @@ func TestAppUnregistrationFailure(t *testing.T) {
 	}
 	if err != nil && !IsErrNotFound(err) {
 		t.Fatal(err)
-	}
-}
-
-func TestSetAndGetEnvironmentVar(t *testing.T) {
-	_, app := appSetup("lolcatapp")
-
-	app, err := app.SetEnvironmentVar("meow", "w00t")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if app.Env["meow"] != "w00t" {
-		t.Error("app.Env should be updated")
-	}
-
-	value, err := app.GetEnvironmentVar("meow")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if value != "w00t" {
-		t.Errorf("EnvironmentVar 'meow' expected %s got %s", "w00t", value)
-	}
-}
-
-func TestSetAndDelEnvironmentVar(t *testing.T) {
-	_, app := appSetup("catalolna")
-
-	app, err := app.SetEnvironmentVar("wuff", "lulz")
-	if err != nil {
-		t.Error(err)
-	}
-
-	app, err = app.DelEnvironmentVar("wuff")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	v, err := app.GetEnvironmentVar("wuff")
-	if err == nil {
-		t.Errorf("EnvironmentVar wasn't deleted: %#v", v)
-		return
-	}
-}
-
-func TestEnvironmentVars(t *testing.T) {
-	_, app := appSetup("cat-A-log")
-
-	_, err := app.SetEnvironmentVar("whiskers", "purr")
-	if err != nil {
-		t.Error(err)
-	}
-	app, err = app.SetEnvironmentVar("lasers", "pew pew")
-	if err != nil {
-		t.Error(err)
-	}
-
-	vars, err := app.EnvironmentVars()
-	if err != nil {
-		t.Error(err)
-	}
-	if vars["whiskers"] != "purr" {
-		t.Error("Var not set")
-	}
-	if vars["lasers"] != "pew pew" {
-		t.Error("Var not set")
 	}
 }
 
