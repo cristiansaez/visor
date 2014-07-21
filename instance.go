@@ -135,7 +135,7 @@ func getSerialisedInstance(
 
 	_, err := sp.GetFile(i.procStatusPath(status), c)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching instance %d: %s", id, err)
 	}
 
 	return ins, nil
