@@ -121,15 +121,14 @@ func getSerialisedInstance(
 	sp cp.Snapshot,
 ) (*Instance, error) {
 	var (
-		ins = &Instance{}
-		c   = &cp.JsonCodec{
-			DecodedVal: ins,
-		}
-
 		i = &Instance{
 			Id:          id,
 			AppName:     app,
 			ProcessName: proc,
+			dir:         cp.NewDir(instancePath(id), sp),
+		}
+		c = &cp.JsonCodec{
+			DecodedVal: i,
 		}
 	)
 
@@ -138,7 +137,7 @@ func getSerialisedInstance(
 		return nil, fmt.Errorf("fetching instance %d: %s", id, err)
 	}
 
-	return ins, nil
+	return i, nil
 }
 
 func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err error) {
