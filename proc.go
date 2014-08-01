@@ -32,6 +32,7 @@ type Proc struct {
 	Registered time.Time
 }
 
+// NewProc returns a new Proc object given an app and a name.
 func (s *Store) NewProc(app *App, name string) *Proc {
 	return &Proc{
 		Name: name,
@@ -94,6 +95,7 @@ func (p *Proc) Unregister() error {
 	return p.dir.Join(sp).Del("/")
 }
 
+// NumInstances returns the count of currently running instances.
 func (p *Proc) NumInstances() (int, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -130,6 +132,7 @@ func (p *Proc) GetDoneInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusDone, p, sp)
 }
 
+// GetFailedInstances returns all Instances in failed state.
 func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -142,6 +145,7 @@ func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusFailed, p, sp)
 }
 
+// GetLostInstances returns all Instances in lost state.
 func (p *Proc) GetLostInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -154,6 +158,7 @@ func (p *Proc) GetLostInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusLost, p, sp)
 }
 
+// GetInstances returns all Instances in pending/claimed/running state.
 func (p *Proc) GetInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -171,6 +176,8 @@ func (p *Proc) GetInstances() ([]*Instance, error) {
 	return getProcInstances(idStrs, sp)
 }
 
+// GetRunningRevs returns all revs for the Proc having an Instance in running
+// state.
 func (p Proc) GetRunningRevs() ([]string, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -183,6 +190,7 @@ func (p Proc) GetRunningRevs() ([]string, error) {
 	return revs, nil
 }
 
+// StoreAttrs saves the Attrs of the Proc.
 func (p *Proc) StoreAttrs() (*Proc, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
