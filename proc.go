@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+const (
+	procsPath      = "procs"
+	procsPortPath  = "port"
+	procsAttrsPath = "attrs"
+)
+
 var reProcName = regexp.MustCompile("^[[:alnum:]]+$")
 
 // Proc represents a process type with a certain scale.
@@ -25,23 +31,6 @@ type Proc struct {
 	Attrs      ProcAttrs
 	Registered time.Time
 }
-
-// Mutable extra Proc attributes.
-type ProcAttrs struct {
-	Limits ResourceLimits `json:"limits"`
-}
-
-// Per-proc resource limits.
-type ResourceLimits struct {
-	// Maximum memory allowance in MB for an instance of this Proc.
-	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
-}
-
-const (
-	procsPath      = "procs"
-	procsPortPath  = "port"
-	procsAttrsPath = "attrs"
-)
 
 func (s *Store) NewProc(app *App, name string) *Proc {
 	return &Proc{
@@ -103,22 +92,6 @@ func (p *Proc) Unregister() error {
 		return err
 	}
 	return p.dir.Join(sp).Del("/")
-}
-
-func (p *Proc) instancesPath() string {
-	return p.dir.Prefix(instancesPath)
-}
-
-func (p *Proc) doneInstancesPath() string {
-	return p.dir.Prefix(donePath)
-}
-
-func (p *Proc) failedInstancesPath() string {
-	return p.dir.Prefix(failedPath)
-}
-
-func (p *Proc) lostInstancesPath() string {
-	return p.dir.Prefix(lostPath)
 }
 
 func (p *Proc) NumInstances() (int, error) {
@@ -229,6 +202,22 @@ func (p *Proc) String() string {
 	return fmt.Sprintf("Proc<%s:%s>", p.App.Name, p.Name)
 }
 
+func (p *Proc) instancesPath() string {
+	return p.dir.Prefix(instancesPath)
+}
+
+func (p *Proc) doneInstancesPath() string {
+	return p.dir.Prefix(donePath)
+}
+
+func (p *Proc) failedInstancesPath() string {
+	return p.dir.Prefix(failedPath)
+}
+
+func (p *Proc) lostInstancesPath() string {
+	return p.dir.Prefix(lostPath)
+}
+
 // GetProc fetches a Proc from the coordinator
 func (a *App) GetProc(name string) (*Proc, error) {
 	sp, err := a.GetSnapshot().FastForward()
@@ -236,6 +225,17 @@ func (a *App) GetProc(name string) (*Proc, error) {
 		return nil, err
 	}
 	return getProc(a, name, sp)
+}
+
+// Mutable extra Proc attributes.
+type ProcAttrs struct {
+	Limits ResourceLimits `json:"limits"`
+}
+
+// Per-proc resource limits.
+type ResourceLimits struct {
+	// Maximum memory allowance in MB for an instance of this Proc.
+	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
 }
 
 func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
