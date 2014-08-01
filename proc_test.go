@@ -7,6 +7,7 @@ package visor
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -255,9 +256,16 @@ func TestProcGetLostInstances(t *testing.T) {
 }
 
 func TestProcAttrs(t *testing.T) {
-	appid := "app-with-attributes"
-	var memoryLimitMb = 100
-	s, app := procSetup(appid)
+	var (
+		s, app        = procSetup("app-with-attributes")
+		memoryLimitMb = 100
+		srvInfo       = &SrvInfo{
+			Env:     "prod",
+			Job:     "web",
+			Product: "attrs-app",
+			Service: "http",
+		}
+	)
 
 	proc := s.NewProc(app, "web")
 	proc, err := proc.Register()
@@ -274,6 +282,13 @@ func TestProcAttrs(t *testing.T) {
 	}
 
 	proc.Attrs.Limits.MemoryLimitMb = &memoryLimitMb
+
+	if proc.Attrs.SrvInfo != nil {
+		t.Fatal("SrvInfo should not be set at this point")
+	}
+
+	proc.Attrs.SrvInfo = srvInfo
+
 	proc, err = proc.StoreAttrs()
 	if err != nil {
 		t.Fatal(err)
@@ -284,10 +299,17 @@ func TestProcAttrs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if proc.Attrs.Limits.MemoryLimitMb == nil {
-		t.Fatalf("MemoryLimitMb is nil")
+		t.Fatal("MemoryLimitMb is nil")
 	}
 	if *proc.Attrs.Limits.MemoryLimitMb != memoryLimitMb {
 		t.Fatalf("MemoryLimitMb does not contain the value that was set")
+	}
+	if proc.Attrs.SrvInfo == nil {
+		t.Fatal("SrvInfo is nil")
+	}
+	if !reflect.DeepEqual(proc.Attrs.SrvInfo, srvInfo) {
+		t.Logf("%#v\n", proc.Attrs.SrvInfo)
+		t.Fatal("attrs differ")
 	}
 }
 

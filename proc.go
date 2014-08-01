@@ -235,15 +235,25 @@ func (a *App) GetProc(name string) (*Proc, error) {
 	return getProc(a, name, sp)
 }
 
-// Mutable extra Proc attributes.
+// ProcAttrs holds optional information.
 type ProcAttrs struct {
-	Limits ResourceLimits `json:"limits"`
+	Limits  ResourceLimits `json:"limits"`
+	SrvInfo *SrvInfo       `json:"srv_info"`
 }
 
-// Per-proc resource limits.
+// ResourceLimits is the per Proc declaration of resources like memory, cpus,
+// etc.
 type ResourceLimits struct {
 	// Maximum memory allowance in MB for an instance of this Proc.
 	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
+}
+
+// SrvInfo holds information needed for Service Discovery.
+type SrvInfo struct {
+	Env     string `json:"env"`
+	Job     string `json:"job"`
+	Product string `json:"product"`
+	Service string `json:"service"`
 }
 
 func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
