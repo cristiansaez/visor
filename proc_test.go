@@ -10,29 +10,6 @@ import (
 	"testing"
 )
 
-func procSetup(appid string) (s *Store, app *App) {
-	s, err := DialUri(DefaultUri, "/proc-test")
-	if err != nil {
-		panic(err)
-	}
-	err = s.reset()
-	if err != nil {
-		panic(err)
-	}
-	s, err = s.FastForward()
-	if err != nil {
-		panic(err)
-	}
-	s, err = s.Init()
-	if err != nil {
-		panic(err)
-	}
-
-	app = s.NewApp(appid, "git://proc.git", "master")
-
-	return
-}
-
 func TestProcRegister(t *testing.T) {
 	s, app := procSetup("reg123")
 	proc := s.NewProc(app, "whoop")
@@ -51,7 +28,7 @@ func TestProcRegister(t *testing.T) {
 	}
 }
 
-func TestProcRegisterWithInvalidName1(t *testing.T) {
+func TestProcRegisterWithInvalidName(t *testing.T) {
 	s, app := procSetup("reg1232")
 	proc := s.NewProc(app, "who-op")
 
@@ -62,13 +39,10 @@ func TestProcRegisterWithInvalidName1(t *testing.T) {
 	if err != ErrBadProcName && err != nil {
 		t.Fatal("wrong error was raised for invalid proc type name")
 	}
-}
 
-func TestProcRegisterWithInvalidName2(t *testing.T) {
-	s, app := procSetup("reg1233")
-	proc := s.NewProc(app, "who_op")
+	proc = s.NewProc(app, "who_op")
 
-	proc, err := proc.Register()
+	proc, err = proc.Register()
 	if err != ErrBadProcName {
 		t.Errorf("invalid proc type name (who_op) did not raise error")
 	}
@@ -280,7 +254,7 @@ func TestProcGetLostInstances(t *testing.T) {
 	}
 }
 
-func TestProcAttributes(t *testing.T) {
+func TestProcAttrs(t *testing.T) {
 	appid := "app-with-attributes"
 	var memoryLimitMb = 100
 	s, app := procSetup(appid)
@@ -315,4 +289,27 @@ func TestProcAttributes(t *testing.T) {
 	if *proc.Attrs.Limits.MemoryLimitMb != memoryLimitMb {
 		t.Fatalf("MemoryLimitMb does not contain the value that was set")
 	}
+}
+
+func procSetup(appid string) (*Store, *App) {
+	s, err := DialUri(DefaultUri, "/proc-test")
+	if err != nil {
+		panic(err)
+	}
+	err = s.reset()
+	if err != nil {
+		panic(err)
+	}
+	s, err = s.FastForward()
+	if err != nil {
+		panic(err)
+	}
+	s, err = s.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	app := s.NewApp(appid, "git://proc.git", "master")
+
+	return s, app
 }
