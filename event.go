@@ -58,6 +58,7 @@ const (
 	EvRevUnreg  = EventType("rev-unregister")
 	EvProcReg   = EventType("proc-register")
 	EvProcUnreg = EventType("proc-unregister")
+	EvProcAttrs = EventType("proc-attrs")
 	EvInsReg    = EventType("instance-register")
 	EvInsUnreg  = EventType("instance-unregister")
 	EvInsStart  = EventType("instance-start")
@@ -77,6 +78,7 @@ const (
 	pathApp eventPath = iota
 	pathRev
 	pathProc
+	pathProcAttrs
 	pathIns
 	pathInsStatus
 	pathInsStart
@@ -87,6 +89,7 @@ var eventPatterns = map[*regexp.Regexp]eventPath{
 	regexp.MustCompile("^/apps/(" + charPat + "+)/registered$"):                          pathApp,
 	regexp.MustCompile("^/apps/(" + charPat + "+)/revs/(" + charPat + "+)/registered$"):  pathRev,
 	regexp.MustCompile("^/apps/(" + charPat + "+)/procs/(" + charPat + "+)/registered$"): pathProc,
+	regexp.MustCompile("^/apps/(" + charPat + "+)/procs/(" + charPat + "+)/attrs$"):      pathProcAttrs,
 	regexp.MustCompile("^/instances/([-0-9]+)/object$"):                                  pathIns,
 	regexp.MustCompile("^/instances/([-0-9]+)/status$"):                                  pathInsStatus,
 	regexp.MustCompile("^/instances/([-0-9]+)/start$"):                                   pathInsStart,
@@ -188,7 +191,7 @@ func canonicalizeMetadata(etype EventType, uncanonicalized EventData, s cp.Snaps
 		source = app
 	case EvRevReg:
 		source = rev
-	case EvProcReg:
+	case EvProcReg, EvProcAttrs:
 		source = proc
 	case EvInsReg, EvInsStart, EvInsFail, EvInsExit, EvInsLost:
 		source = ins
@@ -232,6 +235,13 @@ func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
 					etype = EvProcReg
 				} else if src.IsDel() {
 					etype = EvProcUnreg
+				}
+			case pathProcAttrs:
+				uncanonicalized.App = &match[1]
+				uncanonicalized.Proc = &match[2]
+
+				if src.IsSet() {
+					etype = EvProcAttrs
 				}
 			case pathIns:
 				uncanonicalized.Instance = &match[1]

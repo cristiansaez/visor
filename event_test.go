@@ -154,24 +154,20 @@ func TestEventRevUnregistered(t *testing.T) {
 }
 
 func TestEventProcRegistered(t *testing.T) {
-	s, l := eventSetup()
-	app := eventAppSetup(s, "proc-register")
+	var (
+		s, l = eventSetup()
+		app  = eventAppSetup(s, "proc-register")
+		proc = s.NewProc(app, "all")
+	)
 
 	app, err := app.Register()
 	if err != nil {
 		t.Error(err)
 	}
 
-	rev := s.NewRevision(app, "bang", "bang.img")
-	rev, err = rev.Register()
-	if err != nil {
-		t.Fatal(err)
-	}
-	proc := s.NewProc(app, "all")
+	go storeFromSnapshotable(app).WatchEvent(l)
 
-	go storeFromSnapshotable(rev).WatchEvent(l)
-
-	_, err = proc.Register()
+	proc, err = proc.Register()
 	if err != nil {
 		t.Error(err)
 	}
@@ -186,9 +182,11 @@ func TestEventProcRegistered(t *testing.T) {
 }
 
 func TestEventProcUnregistered(t *testing.T) {
-	s, l := eventSetup()
-	app := eventAppSetup(s, "proc-unregister")
-	proc := s.NewProc(app, "all")
+	var (
+		s, l = eventSetup()
+		app  = eventAppSetup(s, "proc-unregister")
+		proc = s.NewProc(app, "all")
+	)
 
 	proc, err := proc.Register()
 	if err != nil {
@@ -206,6 +204,50 @@ func TestEventProcUnregistered(t *testing.T) {
 
 	if ev.Path.Proc == nil || (*ev.Path.Proc != proc.Name) {
 		t.Error("event.Path doesn't contain expected data")
+	}
+}
+
+func TestEventProcAttrs(t *testing.T) {
+	var (
+		s, l    = eventSetup()
+		app     = eventAppSetup(s, "proc-attrs")
+		proc    = s.NewProc(app, "mightymouse")
+		srvInfo = &SrvInfo{
+			Env:     "prod",
+			Job:     "mighty",
+			Product: "mouse",
+			Service: "http",
+		}
+	)
+
+	app, err := app.Register()
+	if err != nil {
+		t.Error(err)
+	}
+
+	proc, err = proc.Register()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go storeFromSnapshotable(proc).WatchEvent(l)
+
+	proc.Attrs.SrvInfo = srvInfo
+
+	proc, err = proc.StoreAttrs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ev := expectEvent(EvProcAttrs, proc, l, t)
+	if ev.Path.Proc == nil || (*ev.Path.Proc != proc.Name) {
+		t.Error("event.Path doesn't contain expected data")
+	}
+	if ev.Path.App == nil || (*ev.Path.App != app.Name) {
+		t.Error("event.Path doesn't contain expected data")
+	}
+	if !reflect.DeepEqual(srvInfo, ev.Source.(*Proc).Attrs.SrvInfo) {
+		t.Errorf("event proc attrs differ: %#v != %#v", srvInfo, ev.Source.(*Proc).Attrs.SrvInfo)
 	}
 }
 
