@@ -265,6 +265,11 @@ func TestProcAttrs(t *testing.T) {
 			Product: "attrs-app",
 			Service: "http",
 		}
+		routingInfo = &RoutingInfo{
+			Host:   "foo.example.org",
+			Health: "/health",
+			Mode:   "HTTP",
+		}
 	)
 
 	proc := s.NewProc(app, "web")
@@ -289,6 +294,12 @@ func TestProcAttrs(t *testing.T) {
 
 	proc.Attrs.SrvInfo = srvInfo
 
+	if proc.Attrs.RoutingInfo != nil {
+		t.Fatal("RoutingInfo should not be set at this point")
+	}
+
+	proc.Attrs.RoutingInfo = routingInfo
+
 	proc, err = proc.StoreAttrs()
 	if err != nil {
 		t.Fatal(err)
@@ -309,6 +320,13 @@ func TestProcAttrs(t *testing.T) {
 	}
 	if !reflect.DeepEqual(proc.Attrs.SrvInfo, srvInfo) {
 		t.Logf("%#v\n", proc.Attrs.SrvInfo)
+		t.Fatal("attrs differ")
+	}
+	if proc.Attrs.RoutingInfo == nil {
+		t.Fatal("RoutingInfo is nil")
+	}
+	if !reflect.DeepEqual(proc.Attrs.RoutingInfo, routingInfo) {
+		t.Logf("%#v\n", proc.Attrs.RoutingInfo)
 		t.Fatal("attrs differ")
 	}
 }

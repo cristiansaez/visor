@@ -8,10 +8,11 @@ package visor
 import (
 	"errors"
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"regexp"
 	"strconv"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const (
@@ -237,8 +238,9 @@ func (a *App) GetProc(name string) (*Proc, error) {
 
 // ProcAttrs holds optional information.
 type ProcAttrs struct {
-	Limits  ResourceLimits `json:"limits"`
-	SrvInfo *SrvInfo       `json:"srv_info"`
+	Limits      ResourceLimits `json:"limits"`
+	RoutingInfo *RoutingInfo   `json:"routing_info"`
+	SrvInfo     *SrvInfo       `json:"srv_info"`
 }
 
 // ResourceLimits is the per Proc declaration of resources like memory, cpus,
@@ -246,6 +248,13 @@ type ProcAttrs struct {
 type ResourceLimits struct {
 	// Maximum memory allowance in MB for an instance of this Proc.
 	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
+}
+
+// RoutingInfo holds information needed for load balanced HTTP routing.
+type RoutingInfo struct {
+	Host   string `json:"host"`
+	Health string `json:"health"`
+	Mode   string `json:"mode"`
 }
 
 // SrvInfo holds information needed for Service Discovery.
