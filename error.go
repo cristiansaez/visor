@@ -18,6 +18,7 @@ var (
 	ErrInvalidKey      = errors.New("invalid key")
 	ErrInvalidState    = errors.New("invalid state")
 	ErrInvalidFile     = errors.New("invalid file")
+	ErrInvalidSrvInfo  = errors.New("invalid SrvInfo")
 	ErrBadProcName     = errors.New("invalid proc type name: only alphanumeric chars allowed")
 	ErrUnauthorized    = errors.New("operation is not permitted")
 	ErrNotFound        = errors.New("object not found")
@@ -79,6 +80,10 @@ func IsErrInvalidArgument(err error) bool {
 
 func IsErrInvalidKey(err error) bool {
 	return unwrapErr(err) == ErrInvalidKey
+}
+
+func IsErrInvalidSrvInfo(err error) bool {
+	return unwrapErr(err) == ErrInvalidSrvInfo
 }
 
 func errorf(err error, format string, args ...interface{}) *Error {

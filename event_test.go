@@ -7,11 +7,12 @@ package visor
 
 import (
 	"errors"
-	cp "github.com/soundcloud/cotterpin"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 func eventSetup() (*Store, chan *Event) {
@@ -55,7 +56,6 @@ func expectEvent(etype EventType, s cp.Snapshotable, l chan *Event, t *testing.T
 			t.Fatalf("expected event type %s got timeout", etype)
 		}
 	}
-	return
 }
 
 func TestEventAppRegistered(t *testing.T) {

@@ -137,7 +137,7 @@ func TestProcGetDoneInstances(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = ins.Unregister("proc-test", errors.New("done here."))
+		err = ins.Unregister("proc-test", errors.New("done here"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -182,7 +182,7 @@ func TestProcGetFailedInstances(t *testing.T) {
 		instances = append(instances, ins)
 	}
 	for i := 0; i < 4; i++ {
-		_, err := instances[i].Failed("10.0.0.1", errors.New("no reason."))
+		_, err := instances[i].Failed("10.0.0.1", errors.New("no reason"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -193,7 +193,7 @@ func TestProcGetFailedInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(failed) != 4 {
-		t.Errorf("list is missing instances: %s", len(failed))
+		t.Errorf("list is missing instances: %d", len(failed))
 	}
 
 	is, err := proc.GetInstances()
@@ -233,7 +233,7 @@ func TestProcGetLostInstances(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		_, err := instances[i].Lost("watchman", errors.New("it's gone!!!"))
+		_, err := instances[i].Lost("watchman", errors.New("it's gone"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -310,6 +310,40 @@ func TestProcAttrs(t *testing.T) {
 	if !reflect.DeepEqual(proc.Attrs.SrvInfo, srvInfo) {
 		t.Logf("%#v\n", proc.Attrs.SrvInfo)
 		t.Fatal("attrs differ")
+	}
+}
+
+func TestSrvInfoValidate(t *testing.T) {
+	srv := &SrvInfo{
+		Env:     "prod",
+		Job:     "web",
+		Product: "attrs-app",
+		Service: "http",
+	}
+	err := srv.Validate()
+	if err != nil {
+		t.Errorf("expected srv to validate")
+	}
+
+	srv = &SrvInfo{
+		Env:     "foo",
+		Job:     "bar",
+		Product: "baz",
+	}
+	err = srv.Validate()
+	if !IsErrInvalidSrvInfo(err) {
+		t.Error("expected Validate to throw an error if field is missing")
+	}
+
+	srv = &SrvInfo{
+		Env:     "env",
+		Job:     "job",
+		Product: "product",
+		Service: "service.service",
+	}
+	err = srv.Validate()
+	if !IsErrInvalidSrvInfo(err) {
+		t.Error("expected Validate to throw an error if forbidden characters are used")
 	}
 }
 

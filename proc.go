@@ -6,12 +6,12 @@
 package visor
 
 import (
-	"errors"
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"regexp"
 	"strconv"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const (
@@ -41,6 +41,7 @@ func (s *Store) NewProc(app *App, name string) *Proc {
 	}
 }
 
+// GetSnapshot returns cp.Snapshot stored with the Proc.
 func (p *Proc) GetSnapshot() cp.Snapshot {
 	return p.dir.Snapshot
 }
@@ -66,7 +67,7 @@ func (p *Proc) Register() (*Proc, error) {
 
 	p.Port, err = claimNextPort(sp)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("couldn't claim port: %s", err.Error()))
+		return nil, fmt.Errorf("couldn't claim port: %s", err)
 	}
 
 	port := cp.NewFile(p.dir.Prefix(procsPortPath), p.Port, new(cp.IntCodec), sp)
@@ -256,6 +257,42 @@ type SrvInfo struct {
 	Service string `json:"service"`
 }
 
+// Validate checks for completeness and validaty of the information stored in
+// SrvInfo.
+func (s *SrvInfo) Validate() error {
+	validInput := regexp.MustCompile(`^[[:alnum:]\-]+$`)
+
+	if s.Env == "" {
+		return errorf(ErrInvalidSrvInfo, "Env can't be empty")
+	}
+	if !validInput.MatchString(s.Env) {
+		return errorf(ErrInvalidSrvInfo, "only alphanumeric characters and '-' are allowed for Env")
+	}
+
+	if s.Job == "" {
+		return errorf(ErrInvalidSrvInfo, "Job can't be empty")
+	}
+	if !validInput.MatchString(s.Job) {
+		return errorf(ErrInvalidSrvInfo, "only alphanumeric characters and '-' are allowed for Job")
+	}
+
+	if s.Product == "" {
+		return errorf(ErrInvalidSrvInfo, "Product can't be empty")
+	}
+	if !validInput.MatchString(s.Product) {
+		return errorf(ErrInvalidSrvInfo, "only alphanumeric characters and '-' are allowed for Product")
+	}
+
+	if s.Service == "" {
+		return errorf(ErrInvalidSrvInfo, "Service can't be empty")
+	}
+	if !validInput.MatchString(s.Service) {
+		return errorf(ErrInvalidSrvInfo, "only alphanumeric characters and '-' are allowed for Service")
+	}
+
+	return nil
+}
+
 func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
 	p := &Proc{
 		dir:  cp.NewDir(app.dir.Prefix(procsPath, name), s.GetSnapshot()),
@@ -369,13 +406,10 @@ func claimNextPort(s cp.Snapshot) (int, error) {
 			f, err = f.Set(port + 1)
 			if err == nil {
 				return port, nil
-			} else {
-				time.Sleep(time.Second / 10)
 			}
+			time.Sleep(time.Second / 10)
 		} else {
 			return -1, err
 		}
 	}
-
-	return -1, nil
 }

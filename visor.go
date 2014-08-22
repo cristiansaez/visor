@@ -8,13 +8,14 @@ package visor
 import (
 	"errors"
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"net"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const SchemaVersion = 4

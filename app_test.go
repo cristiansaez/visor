@@ -261,7 +261,7 @@ func TestApps(t *testing.T) {
 
 	for i := range apps {
 		if !names[apps[i].Name] {
-			t.Errorf("expected %s to be in %s", apps[i].Name, names)
+			t.Errorf("expected %s to be in %v", apps[i].Name, names)
 		}
 	}
 }
