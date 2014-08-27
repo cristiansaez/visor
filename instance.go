@@ -7,12 +7,13 @@ package visor
 
 import (
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const (
@@ -134,7 +135,7 @@ func getSerialisedInstance(
 
 	_, err := sp.GetFile(i.procStatusPath(status), c)
 	if err != nil {
-		return nil, fmt.Errorf("fetching instance %d: %s", id, err)
+		return nil, errorf(err, "fetching instance %d: %s", id, err)
 	}
 
 	return i, nil
