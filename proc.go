@@ -152,7 +152,7 @@ func (p *Proc) GetDoneInstances() ([]*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	ids, err := sp.Getdir(p.doneInstancesPath())
+	ids, err := sp.Getdir(p.DoneInstancesPath())
 	if err != nil {
 		return nil, err
 	}
