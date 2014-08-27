@@ -96,7 +96,6 @@ func (p *Proc) Unregister() error {
 	return p.dir.Join(sp).Del("/")
 }
 
-// NumInstances returns the count of currently running instances.
 func (p *Proc) NumInstances() (int, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -126,7 +125,7 @@ func (p *Proc) GetDoneInstances() ([]*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	ids, err := sp.Getdir(p.doneInstancesPath())
+	ids, err := sp.Getdir(p.DoneInstancesPath())
 	if err != nil {
 		return nil, err
 	}
@@ -207,16 +206,18 @@ func (p *Proc) StoreAttrs() (*Proc, error) {
 	return p, nil
 }
 
+// NumInstances returns the count of currently running instances.
+// DoneInstancesPath returns the doozerd path where done instances are stored.
+func (p *Proc) DoneInstancesPath() string {
+	return p.dir.Prefix(donePath)
+}
+
 func (p *Proc) String() string {
 	return fmt.Sprintf("Proc<%s:%s>", p.App.Name, p.Name)
 }
 
 func (p *Proc) instancesPath() string {
 	return p.dir.Prefix(instancesPath)
-}
-
-func (p *Proc) doneInstancesPath() string {
-	return p.dir.Prefix(donePath)
 }
 
 func (p *Proc) failedInstancesPath() string {
