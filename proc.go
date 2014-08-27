@@ -8,10 +8,11 @@ package visor
 import (
 	"errors"
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"regexp"
 	"strconv"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 var reProcName = regexp.MustCompile("^[[:alnum:]]+$")
@@ -105,12 +106,13 @@ func (p *Proc) Unregister() error {
 	return p.dir.Join(sp).Del("/")
 }
 
-func (p *Proc) instancesPath() string {
-	return p.dir.Prefix(instancesPath)
+// DoneInstancesPath returns the doozerd path where done instances are stored.
+func (p *Proc) DoneInstancesPath() string {
+	return p.dir.Prefix(donePath)
 }
 
-func (p *Proc) doneInstancesPath() string {
-	return p.dir.Prefix(donePath)
+func (p *Proc) instancesPath() string {
+	return p.dir.Prefix(instancesPath)
 }
 
 func (p *Proc) failedInstancesPath() string {
