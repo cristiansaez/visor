@@ -7,6 +7,7 @@ package visor
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -569,6 +570,37 @@ func TestInstanceWaitStop(t *testing.T) {
 	// if ins1.GetSnapshot().Rev <= ins.GetSnapshot().Rev {
 	// 	t.Error("expected new revision to be greater than previous")
 	// }
+}
+
+func TestInstanceWaitUnregister(t *testing.T) {
+	s := instanceSetup()
+
+	ins, err := s.RegisterInstance("jin", "7e45c4a", "worker", "prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ins, err = ins.Claim("127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ins, err = ins.Started("127.0.0.1", "localhost", 20000, 20001)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		err := ins.Unregister("visor-test", fmt.Errorf("gone"))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	err = ins.WaitUnregister()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestInstanceLocking(t *testing.T) {

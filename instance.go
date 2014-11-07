@@ -484,6 +484,20 @@ func (i *Instance) WaitLost() (*Instance, error) {
 	return i, nil
 }
 
+func (i Instance) WaitUnregister() error {
+	p := path.Join(instancesPath, strconv.FormatInt(i.Id, 10), objectPath)
+	sp := i.GetSnapshot()
+	ev, err := sp.Wait(p)
+	if err != nil {
+		return err
+	}
+	if ev.IsDel() {
+		return nil
+	}
+
+	return fmt.Errorf("unexpected turn of events: %s", ev)
+}
+
 func (i *Instance) GetStatusInfo() (string, error) {
 	info, _, err := i.dir.Snapshot.Get(i.procStatusPath(i.Status))
 	if err != nil {
