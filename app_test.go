@@ -164,6 +164,38 @@ func TestSetAndGetEnvironmentVar(t *testing.T) {
 	}
 }
 
+func TestStoreAttrs(t *testing.T) {
+	s, app := appSetup("derp")
+	app, err := app.Register()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app.RepoUrl = "http://derphub.com"
+	app.Stack = "stack"
+	app.DeployType = "awesome"
+
+	_, err = app.StoreAttrs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := s.GetApp("derp")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if app.RepoUrl != a.RepoUrl {
+		t.Fatalf("RepoUrl does not match: expected %s, got %s", app.RepoUrl, a.RepoUrl)
+	}
+	if app.Stack != a.Stack {
+		t.Fatalf("Stack does not match: expected %s, got %s", app.Stack, a.Stack)
+	}
+	if app.DeployType != a.DeployType {
+		t.Fatalf("DeployType does not match: expected %s, got %s", app.DeployType, a.DeployType)
+	}
+}
+
 func TestSetAndDelEnvironmentVar(t *testing.T) {
 	_, app := appSetup("catalolna")
 
