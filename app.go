@@ -7,10 +7,11 @@ package visor
 
 import (
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"path"
 	"strings"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const appsPath = "apps"
@@ -115,6 +116,27 @@ func (a *App) SetHead(head string) (*App, error) {
 	}
 	a.Head = head
 	a.dir = d
+
+	return a, nil
+}
+
+// StoreAttrs saves the current App attrs.
+func (a *App) StoreAttrs() (*App, error) {
+	f, err := a.dir.GetFile("attrs", new(cp.JsonCodec))
+	if err != nil {
+		return nil, err
+	}
+
+	v := map[string]interface{}{
+		"repo-url":    a.RepoUrl,
+		"stack":       a.Stack,
+		"deploy-type": a.DeployType,
+	}
+	f.Value = v
+	f, err = f.Save()
+	if err != nil {
+		return nil, err
+	}
 
 	return a, nil
 }
