@@ -120,6 +120,12 @@ func (a *App) SetHead(head string) (*App, error) {
 	return a, nil
 }
 
+// SetStack sets the application's stack
+func (a *App) SetStack(stack string) (*App, error) {
+	a.Stack = stack
+	return a.StoreAttrs()
+}
+
 // StoreAttrs saves the current App attrs.
 func (a *App) StoreAttrs() (*App, error) {
 	f, err := a.dir.GetFile("attrs", new(cp.JsonCodec))
@@ -352,10 +358,10 @@ func getApp(name string, s cp.Snapshotable) (*App, error) {
 	sp := s.GetSnapshot()
 	app := storeFromSnapshotable(s).NewApp(name, "", "")
 
-	f, err := sp.GetFile(app.dir.Prefix("attrs"), new(cp.JsonCodec))
+	f, err := sp.GetSnapshot().GetFile(app.dir.Prefix("attrs"), new(cp.JsonCodec))
 	if err != nil {
 		if cp.IsErrNoEnt(err) {
-			err = errorf(ErrNotFound, `app "%s" not found`, name)
+			err = errorf(ErrNotFound, `app "%s" not found`, app.Name)
 		}
 		return nil, err
 	}
