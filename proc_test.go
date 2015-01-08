@@ -315,4 +315,20 @@ func TestProcAttributes(t *testing.T) {
 	if *proc.Attrs.Limits.MemoryLimitMb != memoryLimitMb {
 		t.Fatalf("MemoryLimitMb does not contain the value that was set")
 	}
+
+	// LogPersistence
+	if proc.Attrs.LogPersistence != false {
+		t.Fatal("LogPersistence should be off by default")
+	}
+	proc.Attrs.LogPersistence = true
+	if _, err := proc.StoreAttrs(); err != nil {
+		t.Fatal(err)
+	}
+	proc, err = app.GetProc("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proc.Attrs.LogPersistence != true {
+		t.Fatalf("LogPersistence should be on after change")
+	}
 }
