@@ -33,8 +33,8 @@ func appSetup(name string) (*Store, *App) {
 	return s, app
 }
 
-func TestAppRegistration(t *testing.T) {
-	_, app := appSetup("lolcatapp")
+func registerApp(t *testing.T, name string) (*Store, *App, error) {
+	s, app := appSetup(name)
 
 	check, _, err := app.GetSnapshot().Exists(app.dir.Name)
 	if err != nil {
@@ -45,11 +45,37 @@ func TestAppRegistration(t *testing.T) {
 	}
 
 	app, err = app.Register()
+	return s, app, err
+}
+
+func TestUpdateStack(t *testing.T) {
+	s, app, err := registerApp(t, "jdk-8-app")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app, err = app.SetStack("jdk-8")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app, err = s.GetApp("jdk-8-app")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if app.Stack != "jdk-8" {
+		t.Error("stack was not changed successfully")
+	}
+}
+
+func TestAppRegistration(t *testing.T) {
+	_, app, err := registerApp(t, "lolcatapp")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	check, _, err = app.GetSnapshot().Exists(app.dir.Name)
+	check, _, err := app.GetSnapshot().Exists(app.dir.Name)
 	if err != nil {
 		t.Error(err)
 		return
