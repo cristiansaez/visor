@@ -29,7 +29,8 @@ type Proc struct {
 
 // Mutable extra Proc attributes.
 type ProcAttrs struct {
-	Limits ResourceLimits `json:"limits"`
+	Limits         ResourceLimits `json:"limits"`
+	LogPersistence bool           `json:"log_persistence"`
 }
 
 // Per-proc resource limits.
