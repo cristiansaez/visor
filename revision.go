@@ -7,8 +7,9 @@ package visor
 
 import (
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 // A Revision represents an application revision,
@@ -17,23 +18,24 @@ type Revision struct {
 	dir        *cp.Dir
 	App        *App
 	Ref        string
-	ArchiveUrl string
+	ArchiveURL string
 	Registered time.Time
 }
 
 const (
-	archiveUrlPath = "archive-url"
+	archiveURLPath = "archive-url"
 	revsPath       = "revs"
 )
 
 // NewRevision returns a new instance of Revision.
-func (s *Store) NewRevision(app *App, ref, archiveUrl string) (rev *Revision) {
-	rev = &Revision{App: app, Ref: ref, ArchiveUrl: archiveUrl}
+func (s *Store) NewRevision(app *App, ref, archiveURL string) (rev *Revision) {
+	rev = &Revision{App: app, Ref: ref, ArchiveURL: archiveURL}
 	rev.dir = cp.NewDir(app.dir.Prefix(revsPath, ref), s.GetSnapshot())
 
 	return
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (r *Revision) GetSnapshot() cp.Snapshot {
 	return r.dir.Snapshot
 }
@@ -53,7 +55,7 @@ func (r *Revision) Register() (*Revision, error) {
 		return nil, ErrConflict
 	}
 
-	d, err := r.dir.Join(sp).Set(archiveUrlPath, r.ArchiveUrl)
+	d, err := r.dir.Join(sp).Set(archiveURLPath, r.ArchiveURL)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +84,7 @@ func (r *Revision) String() string {
 	return fmt.Sprintf("Revision<%s:%s>", r.App.Name, r.Ref)
 }
 
+// GetRevision returns the Revision of an App given the ref.
 func (a *App) GetRevision(ref string) (*Revision, error) {
 	sp, err := a.GetSnapshot().FastForward()
 	if err != nil {
@@ -90,7 +93,7 @@ func (a *App) GetRevision(ref string) (*Revision, error) {
 	return getRevision(a, ref, sp)
 }
 
-// Revisions returns an array of all registered revisions.
+// GetRevisions returns an array of all registered revisions.
 func (s *Store) GetRevisions() (revisions []*Revision, err error) {
 	apps, err := s.GetApps()
 	if err != nil {
@@ -117,14 +120,14 @@ func getRevision(app *App, ref string, s cp.Snapshotable) (*Revision, error) {
 		Ref: ref,
 	}
 
-	f, err := r.dir.GetFile(archiveUrlPath, new(cp.StringCodec))
+	f, err := r.dir.GetFile(archiveURLPath, new(cp.StringCodec))
 	if err != nil {
 		if cp.IsErrNoEnt(err) {
 			err = errorf(ErrNotFound, "archive-url not found for %s:%s", app.Name, ref)
 		}
 		return nil, err
 	}
-	r.ArchiveUrl = f.Value.(string)
+	r.ArchiveURL = f.Value.(string)
 
 	f, err = r.dir.GetFile(registeredPath, new(cp.StringCodec))
 	if err != nil {

@@ -102,7 +102,7 @@ var hookStore *Store
 
 func hookSetup(t *testing.T) *App {
 	if hookStore == nil {
-		s, err := DialUri(DefaultUri, "/hook-test")
+		s, err := DialURI(DefaultURI, "/hook-test")
 		if err != nil {
 			t.Fatal(err)
 		}

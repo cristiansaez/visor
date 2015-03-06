@@ -11,9 +11,9 @@ import (
 )
 
 func appSetup(name string) (*Store, *App) {
-	s, err := DialUri(DefaultUri, "/app-test")
+	s, err := DialURI(DefaultURI, "/app-test")
 	if err != nil {
-		panic(fmt.Errorf("Failed to connect to doozer on '%s: %s", DefaultUri, err.Error()))
+		panic(fmt.Errorf("Failed to connect to doozer on '%s: %s", DefaultURI, err.Error()))
 	}
 	err = s.reset()
 	if err != nil {
@@ -197,7 +197,7 @@ func TestStoreAttrs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	app.RepoUrl = "http://derphub.com"
+	app.RepoURL = "http://derphub.com"
 	app.Stack = "stack"
 	app.DeployType = "awesome"
 
@@ -211,8 +211,8 @@ func TestStoreAttrs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if app.RepoUrl != a.RepoUrl {
-		t.Fatalf("RepoUrl does not match: expected %s, got %s", app.RepoUrl, a.RepoUrl)
+	if app.RepoURL != a.RepoURL {
+		t.Fatalf("RepoUrl does not match: expected %s, got %s", app.RepoURL, a.RepoURL)
 	}
 	if app.Stack != a.Stack {
 		t.Fatalf("Stack does not match: expected %s, got %s", app.Stack, a.Stack)
@@ -319,7 +319,7 @@ func TestApps(t *testing.T) {
 
 	for i := range apps {
 		if !names[apps[i].Name] {
-			t.Errorf("expected %s to be in %s", apps[i].Name, names)
+			t.Errorf("expected %s to be in %v", apps[i].Name, names)
 		}
 	}
 }

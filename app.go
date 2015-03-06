@@ -14,13 +14,15 @@ import (
 	cp "github.com/soundcloud/cotterpin"
 )
 
-const appsPath = "apps"
+// DeployLXC defines the cannonical name for lxc deploy type.
 const DeployLXC = "lxc"
+const appsPath = "apps"
 
+// App is the representation of a repository of coherent changes.
 type App struct {
 	dir        *cp.Dir
 	Name       string
-	RepoUrl    string
+	RepoURL    string
 	Stack      string
 	Head       string
 	Env        map[string]string
@@ -30,12 +32,13 @@ type App struct {
 
 // NewApp returns a new App given a name, repository url and stack.
 func (s *Store) NewApp(name string, repourl string, stack string) (app *App) {
-	app = &App{Name: name, RepoUrl: repourl, Stack: stack, Env: map[string]string{}}
+	app = &App{Name: name, RepoURL: repourl, Stack: stack, Env: map[string]string{}}
 	app.dir = cp.NewDir(path.Join(appsPath, app.Name), s.GetSnapshot())
 
 	return
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (a *App) GetSnapshot() cp.Snapshot {
 	return a.dir.Snapshot
 }
@@ -60,7 +63,7 @@ func (a *App) Register() (*App, error) {
 	}
 
 	v := map[string]interface{}{
-		"repo-url":    a.RepoUrl,
+		"repo-url":    a.RepoURL,
 		"stack":       a.Stack,
 		"deploy-type": a.DeployType,
 	}
@@ -134,7 +137,7 @@ func (a *App) StoreAttrs() (*App, error) {
 	}
 
 	v := map[string]interface{}{
-		"repo-url":    a.RepoUrl,
+		"repo-url":    a.RepoURL,
 		"stack":       a.Stack,
 		"deploy-type": a.DeployType,
 	}
@@ -173,9 +176,8 @@ func (a *App) EnvironmentVars() (vars map[string]string, err error) {
 	if err != nil {
 		if cp.IsErrNoEnt(err) {
 			return vars, nil
-		} else {
-			return
 		}
+		return
 	}
 
 	for _, name := range names {
@@ -192,9 +194,8 @@ func (a *App) EnvironmentVars() (vars map[string]string, err error) {
 		r := <-ch
 		if r.err != nil {
 			return nil, err
-		} else {
-			vars[strings.Replace(r.key, "-", "_", -1)] = r.val
 		}
+		vars[strings.Replace(r.key, "-", "_", -1)] = r.val
 	}
 	return
 }
@@ -368,7 +369,7 @@ func getApp(name string, s cp.Snapshotable) (*App, error) {
 
 	value := f.Value.(map[string]interface{})
 
-	app.RepoUrl = value["repo-url"].(string)
+	app.RepoURL = value["repo-url"].(string)
 	app.Stack = value["stack"].(string)
 	app.DeployType = value["deploy-type"].(string)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func runnerSetup() (s *Store) {
-	s, err := DialUri(DefaultUri, "/runner-test")
+	s, err := DialURI(DefaultURI, "/runner-test")
 	if err != nil {
 		panic(err)
 	}
@@ -29,19 +29,19 @@ func runnerSetup() (s *Store) {
 }
 
 func TestRunnerRegisterAndGet(t *testing.T) {
-	var insId int64 = 787878
+	var insID int64 = 787878
 
 	s := runnerSetup()
 	addr := "127.0.0.1:9999"
 
-	r, err := s.NewRunner(addr, insId).Register()
+	r, err := s.NewRunner(addr, insID).Register()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if r.Addr != addr {
 		t.Error("runner addr wasn't set correctly")
 	}
-	if r.InstanceId != insId {
+	if r.InstanceID != insID {
 		t.Error("runner instance-id wasn't set correctly")
 	}
 
@@ -53,7 +53,7 @@ func TestRunnerRegisterAndGet(t *testing.T) {
 	if r1.Addr != r1.Addr {
 		t.Error("addrs don't match")
 	}
-	if r1.InstanceId != r1.InstanceId {
+	if r1.InstanceID != r1.InstanceID {
 		t.Error("instance ids don't match")
 	}
 
@@ -117,7 +117,7 @@ func TestRunnersByHost(t *testing.T) {
 }
 
 func TestWatchRunnerStart(t *testing.T) {
-	var insId int64 = 797979
+	var insID int64 = 797979
 
 	addr := "127.0.0.1:9898"
 	s := runnerSetup()
@@ -126,7 +126,7 @@ func TestWatchRunnerStart(t *testing.T) {
 
 	go s.WatchRunnerStart(ch, errch)
 
-	r := s.NewRunner(addr, insId)
+	r := s.NewRunner(addr, insID)
 	r1, err := r.Register()
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ func TestWatchRunnerStart(t *testing.T) {
 
 	select {
 	case r2 := <-ch:
-		if r2.InstanceId == r1.InstanceId && r2.Addr == r1.Addr {
+		if r2.InstanceID == r1.InstanceID && r2.Addr == r1.Addr {
 			break
 		}
 		t.Errorf("received unexpected runner: %#v", r2)
@@ -146,7 +146,7 @@ func TestWatchRunnerStart(t *testing.T) {
 }
 
 func TestWatchRunnerStop(t *testing.T) {
-	var insId int64 = 797979
+	var insID int64 = 797979
 
 	addr := "127.0.0.1:9898"
 	s := runnerSetup()
@@ -155,7 +155,7 @@ func TestWatchRunnerStop(t *testing.T) {
 
 	go s.WatchRunnerStop(ch, errch)
 
-	r := s.NewRunner(addr, insId)
+	r := s.NewRunner(addr, insID)
 	r1, err := r.Register()
 	if err != nil {
 		t.Fatal(err)

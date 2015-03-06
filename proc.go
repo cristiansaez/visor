@@ -6,7 +6,6 @@
 package visor
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -27,13 +26,13 @@ type Proc struct {
 	Registered time.Time
 }
 
-// Mutable extra Proc attributes.
+// ProcAttrs are mutable extra information for a proc.
 type ProcAttrs struct {
 	Limits         ResourceLimits `json:"limits"`
 	LogPersistence bool           `json:"log_persistence"`
 }
 
-// Per-proc resource limits.
+// ResourceLimits are per proc constraints like memory/cpu.
 type ResourceLimits struct {
 	// Maximum memory allowance in MB for an instance of this Proc.
 	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
@@ -45,6 +44,7 @@ const (
 	procsAttrsPath = "attrs"
 )
 
+// NewProc creates a Proc given App and name.
 func (s *Store) NewProc(app *App, name string) *Proc {
 	return &Proc{
 		Name: name,
@@ -53,6 +53,7 @@ func (s *Store) NewProc(app *App, name string) *Proc {
 	}
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (p *Proc) GetSnapshot() cp.Snapshot {
 	return p.dir.Snapshot
 }
@@ -78,7 +79,7 @@ func (p *Proc) Register() (*Proc, error) {
 
 	p.Port, err = claimNextPort(sp)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("couldn't claim port: %s", err.Error()))
+		return nil, fmt.Errorf("couldn't claim port: %s", err.Error())
 	}
 
 	port := cp.NewFile(p.dir.Prefix(procsPortPath), p.Port, new(cp.IntCodec), sp)
@@ -124,6 +125,7 @@ func (p *Proc) lostInstancesPath() string {
 	return p.dir.Prefix(lostPath)
 }
 
+// NumInstances returns the number of instances running for a proc.
 func (p *Proc) NumInstances() (int, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -160,6 +162,7 @@ func (p *Proc) GetDoneInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusDone, p, sp)
 }
 
+// GetFailedInstances returns all isntances in failed state.
 func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -172,6 +175,7 @@ func (p *Proc) GetFailedInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusFailed, p, sp)
 }
 
+// GetLostInstances returns all Instances in lost state.
 func (p *Proc) GetLostInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -184,6 +188,7 @@ func (p *Proc) GetLostInstances() ([]*Instance, error) {
 	return getSerialisedInstances(ids, InsStatusLost, p, sp)
 }
 
+// GetInstances returns all Instances for a proc.
 func (p *Proc) GetInstances() ([]*Instance, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -201,6 +206,7 @@ func (p *Proc) GetInstances() ([]*Instance, error) {
 	return getProcInstances(idStrs, sp)
 }
 
+// GetRunningRevs returns all revs with at least one running instance.
 func (p Proc) GetRunningRevs() ([]string, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -213,6 +219,7 @@ func (p Proc) GetRunningRevs() ([]string, error) {
 	return revs, nil
 }
 
+// StoreAttrs saves the set Attrs for the Proc.
 func (p *Proc) StoreAttrs() (*Proc, error) {
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
@@ -280,7 +287,7 @@ func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
 
 func getProcInstances(ids []string, s cp.Snapshotable) ([]*Instance, error) {
 	ch, errch := cp.GetSnapshotables(ids, func(idstr string) (cp.Snapshotable, error) {
-		id, err := parseInstanceId(idstr)
+		id, err := parseInstanceID(idstr)
 		if err != nil {
 			return nil, err
 		}
@@ -323,7 +330,7 @@ func getSerialisedInstances(
 ) ([]*Instance, error) {
 	is := []*Instance{}
 	for _, idstr := range ids {
-		id, err := parseInstanceId(idstr)
+		id, err := parseInstanceID(idstr)
 		if err != nil {
 			return nil, err
 		}
@@ -354,13 +361,10 @@ func claimNextPort(s cp.Snapshot) (int, error) {
 			f, err = f.Set(port + 1)
 			if err == nil {
 				return port, nil
-			} else {
-				time.Sleep(time.Second / 10)
 			}
+			time.Sleep(time.Second / 10)
 		} else {
 			return -1, err
 		}
 	}
-
-	return -1, nil
 }

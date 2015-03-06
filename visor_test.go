@@ -10,7 +10,7 @@ import (
 )
 
 func visorSetup(root string) *Store {
-	s, err := DialUri(DefaultUri, root)
+	s, err := DialURI(DefaultURI, root)
 	if err != nil {
 		panic(err)
 	}
@@ -224,7 +224,7 @@ func setInstancesToStarted(ins []*Instance) error {
 		if err != nil {
 			return err
 		}
-		port += 1
+		port++
 	}
 	return nil
 }

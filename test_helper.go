@@ -4,7 +4,6 @@ import (
 	"math/rand"
 )
 
-var ticketId int64 = 10
 var appNames = []string{"cat", "dog", "bird", "wolf", "bear", "lion", "tiger"}
 var revNames = []string{"master", "slave", "e7fa81", "a91748", "f7ea91", "dev", "stable"}
 

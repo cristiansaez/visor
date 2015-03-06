@@ -6,9 +6,10 @@
 package visor
 
 import (
-	cp "github.com/soundcloud/cotterpin"
 	"strings"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	varsPath = "vars"
 )
 
+// Env is a set of config variables which will be passed to instances.
 type Env struct {
 	dir        *cp.Dir
 	App        *App
@@ -35,6 +37,7 @@ func (a *App) NewEnv(ref string, vars map[string]string) *Env {
 	}
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (e *Env) GetSnapshot() cp.Snapshot {
 	return e.dir.Snapshot
 }

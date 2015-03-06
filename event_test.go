@@ -7,15 +7,16 @@ package visor
 
 import (
 	"errors"
-	cp "github.com/soundcloud/cotterpin"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 func eventSetup() (*Store, chan *Event) {
-	s, err := DialUri(DefaultUri, "/event-test")
+	s, err := DialURI(DefaultURI, "/event-test")
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +56,6 @@ func expectEvent(etype EventType, s cp.Snapshotable, l chan *Event, t *testing.T
 			t.Fatalf("expected event type %s got timeout", etype)
 		}
 	}
-	return
 }
 
 func TestEventAppRegistered(t *testing.T) {
@@ -222,7 +222,7 @@ func TestEventInstanceRegistered(t *testing.T) {
 
 	ev := expectEvent(EvInsReg, ins, l, t)
 
-	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.Id, 10)) {
+	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.ID, 10)) {
 		t.Error("event.Path doesn't contain expected data")
 	}
 }
@@ -242,7 +242,7 @@ func TestEventInstanceUnregistered(t *testing.T) {
 	}
 
 	ev := expectEvent(EvInsUnreg, nil, l, t)
-	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.Id, 10)) {
+	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.ID, 10)) {
 		t.Error("event.Path doesn't contain expected data")
 	}
 }
@@ -270,17 +270,17 @@ func TestEventInstanceStateChange(t *testing.T) {
 		t.Error(err)
 	}
 	ev := expectEvent(EvInsStart, ins, l, t)
-	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.Id, 10)) {
+	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.ID, 10)) {
 		t.Error("event.Path doesn't contain expected data")
 	}
 
 	instance := ev.Source.(*Instance)
 
-	if instance.Ip != ip || instance.Host != host || instance.Port != port {
+	if instance.IP != ip || instance.Host != host || instance.Port != port {
 		t.Fatal("instance fields don't match")
 	}
 
-	ins, err = ins.Failed(ip, errors.New("no reason."))
+	ins, err = ins.Failed(ip, errors.New("no reason"))
 	if err != nil {
 		t.Error(err)
 	}

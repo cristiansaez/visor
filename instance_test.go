@@ -17,7 +17,7 @@ import (
 )
 
 func instanceSetup() *Store {
-	s, err := DialUri(DefaultUri, "/instance-test")
+	s, err := DialURI(DefaultURI, "/instance-test")
 	if err != nil {
 		panic(err)
 	}
@@ -59,16 +59,16 @@ func TestInstanceRegisterAndGet(t *testing.T) {
 	if ins.Status != InsStatusPending {
 		t.Error("instance status wasn't set correctly")
 	}
-	if ins.Id <= 0 {
+	if ins.ID <= 0 {
 		t.Error("instance id wasn't set correctly")
 	}
 
-	ins1, err := s.GetInstance(ins.Id)
+	ins1, err := s.GetInstance(ins.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if ins1.Id != ins.Id {
+	if ins1.ID != ins.ID {
 		t.Error("ids don't match")
 	}
 	if ins1.Status != ins.Status {
@@ -111,7 +111,7 @@ func TestInstanceUnregister(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = s.GetInstance(i.Id)
+	_, err = s.GetInstance(i.ID)
 	if !IsErrNotFound(err) {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestInstanceUnregister(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !done {
-		t.Errorf("expected instance %d to be done", i.Id)
+		t.Errorf("expected instance %d to be done", i.ID)
 	}
 }
 
@@ -238,15 +238,15 @@ func TestInstanceStarted(t *testing.T) {
 		t.Errorf("unexpected status '%s'", ins2.Status)
 	}
 
-	if ins2.Port != port || ins2.Host != host || ins2.Ip != ip {
+	if ins2.Port != port || ins2.Host != host || ins2.IP != ip {
 		t.Errorf("instance attributes not set correctly for %#v", ins2)
 	}
 
-	ins3, err := s.GetInstance(ins2.Id)
+	ins3, err := s.GetInstance(ins2.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ins3.Port != port || ins3.Host != host || ins3.Ip != ip {
+	if ins3.Port != port || ins3.Host != host || ins3.IP != ip {
 		t.Errorf("instance attributes not stored correctly for %#v", ins3)
 	}
 
@@ -257,7 +257,7 @@ func TestInstanceStarted(t *testing.T) {
 
 	if !func() bool {
 		for _, id := range ids {
-			if id == ins.Id {
+			if id == ins.ID {
 				return true
 			}
 		}
@@ -324,7 +324,7 @@ func TestInstanceExited(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testInstanceStatus(s, t, ins.Id, InsStatusExited)
+	testInstanceStatus(s, t, ins.ID, InsStatusExited)
 }
 
 func TestInstanceRestarted(t *testing.T) {
@@ -357,7 +357,7 @@ func TestInstanceRestarted(t *testing.T) {
 	if ins2.Restarts.Fail != 2 {
 		t.Error("expected restart count to be set to 2")
 	}
-	ins3, err := storeFromSnapshotable(ins).GetInstance(ins.Id)
+	ins3, err := storeFromSnapshotable(ins).GetInstance(ins.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,13 +375,13 @@ func TestInstanceFailed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ins1, err := ins.Failed(ip, errors.New("because."))
+	ins1, err := ins.Failed(ip, errors.New("because"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	testInstanceStatus(storeFromSnapshotable(ins1), t, ins.Id, InsStatusFailed)
+	testInstanceStatus(storeFromSnapshotable(ins1), t, ins.ID, InsStatusFailed)
 
-	_, err = ins.Failed("9.9.9.9", errors.New("no reason."))
+	_, err = ins.Failed("9.9.9.9", errors.New("no reason"))
 	if !IsErrUnauthorized(err) {
 		t.Error("expected command to fail")
 	}
@@ -395,7 +395,7 @@ func TestPendingInstanceFailed(t *testing.T) {
 		store = instanceSetup()
 
 		ins1, _ = store.RegisterInstance("bat", "128af9", "web", "default")
-		ins2, _ = store.GetInstance(ins1.Id)
+		ins2, _ = store.GetInstance(ins1.ID)
 	)
 
 	if _, err := ins1.Failed("9.9.9.8", errors.New("fail1")); err != nil {
@@ -407,7 +407,7 @@ func TestPendingInstanceFailed(t *testing.T) {
 		t.Fatalf("expected REV_MISMATCH, got: %q", err)
 	}
 
-	ins, _ := store.GetInstance(ins1.Id)
+	ins, _ := store.GetInstance(ins1.ID)
 
 	if ins.Status != InsStatusFailed {
 		t.Fatalf("expected status to be failed, got %q", ins.Status)
@@ -430,7 +430,7 @@ func TestInstanceLost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testInstanceStatus(storeFromSnapshotable(ins), t, ins.Id, InsStatusLost)
+	testInstanceStatus(storeFromSnapshotable(ins), t, ins.ID, InsStatusLost)
 
 	// Note: we do not test whether or not lost instances can be retrieved
 	// here. See the proc tests & (*Proc).GetLostInstances()
@@ -530,7 +530,7 @@ func TestInstanceWait(t *testing.T) {
 	if ins2.Status != InsStatusRunning {
 		t.Errorf("expected instance status to be %s", InsStatusRunning)
 	}
-	if ins2.Ip != "127.0.0.1" || ins2.Port != 9000 || ins2.Host != "localhost" {
+	if ins2.IP != "127.0.0.1" || ins2.Port != 9000 || ins2.Host != "localhost" {
 		t.Errorf("expected ip/port/host to match for %#v", ins2)
 	}
 }
@@ -558,7 +558,7 @@ func TestInstanceWaitStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ins, err = s.GetInstance(ins.Id)
+	ins, err = s.GetInstance(ins.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -661,7 +661,7 @@ func TestInstanceSerialisation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ins1, err := s.GetSerialisedInstance(ins.AppName, ins.ProcessName, ins.Id, InsStatusDone)
+	ins1, err := s.GetSerialisedInstance(ins.AppName, ins.ProcessName, ins.ID, InsStatusDone)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,7 +13,7 @@ var store *Store
 
 func envSetup(t *testing.T) *App {
 	if store == nil {
-		s, err := DialUri(DefaultUri, "/env-test")
+		s, err := DialURI(DefaultURI, "/env-test")
 		if err != nil {
 			t.Fatal(err)
 		}

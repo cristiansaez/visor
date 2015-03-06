@@ -8,9 +8,11 @@ package visor
 import (
 	"errors"
 	"fmt"
+
 	cp "github.com/soundcloud/cotterpin"
 )
 
+// Errors.
 var (
 	ErrConflict        = errors.New("object already exists")
 	ErrInsClaimed      = errors.New("instance is already claimed")
@@ -23,11 +25,13 @@ var (
 	ErrNotFound        = errors.New("object not found")
 )
 
+// Error is the wrapper type to express custom errors.
 type Error struct {
 	Err     error
 	Message string
 }
 
+// NewError wraps the given error with a custom message.
 func NewError(err error, msg string) *Error {
 	return &Error{err, msg}
 }
@@ -47,36 +51,44 @@ func unwrapErr(err error) error {
 	return err
 }
 
+// IsErrConflict is a helper to test for ErrConflict.
 func IsErrConflict(err error) bool {
 	return unwrapErr(err) == ErrConflict
 }
 
+// IsErrUnauthorized is a helper to test for ErrUnauthorized.
 func IsErrUnauthorized(err error) bool {
 	return unwrapErr(err) == ErrUnauthorized
 }
 
+// IsErrNotFound is a helper to test for ErrNotFound.
 func IsErrNotFound(err error) bool {
 	err = unwrapErr(err)
 
 	return err == cp.ErrNoEnt || err == ErrNotFound
 }
 
+// IsErrInsClaimed is a helper to test for ErrInsClaimed.
 func IsErrInsClaimed(err error) bool {
 	return unwrapErr(err) == ErrInsClaimed
 }
 
+// IsErrInvalidState is a helper to test for ErrInvalidState.
 func IsErrInvalidState(err error) bool {
 	return unwrapErr(err) == ErrInvalidState
 }
 
+// IsErrInvalidFile is a helper to test for ErrInvalidFile.
 func IsErrInvalidFile(err error) bool {
 	return unwrapErr(err) == ErrInvalidFile
 }
 
+// IsErrInvalidArgument is a helper to test for ErrInvalidArgument.
 func IsErrInvalidArgument(err error) bool {
 	return unwrapErr(err) == ErrInvalidArgument
 }
 
+// IsErrInvalidKey is a helper to test for ErrInvalidKey.
 func IsErrInvalidKey(err error) bool {
 	return unwrapErr(err) == ErrInvalidKey
 }

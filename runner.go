@@ -7,32 +7,37 @@ package visor
 
 import (
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"path"
 	"strconv"
 	"strings"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const runnersPath = "runners"
 
+// Runner is representation of a bazooka-runner process.
 type Runner struct {
 	dir        *cp.Dir
 	Addr       string
-	InstanceId int64
+	InstanceID int64
 }
 
-func (s *Store) NewRunner(addr string, instanceId int64) *Runner {
+// NewRunner creates a Runner for the given Instance.
+func (s *Store) NewRunner(addr string, instanceID int64) *Runner {
 	return &Runner{
 		dir:        cp.NewDir(runnerPath(addr), s.GetSnapshot()),
 		Addr:       addr,
-		InstanceId: instanceId,
+		InstanceID: instanceID,
 	}
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (r *Runner) GetSnapshot() cp.Snapshot {
 	return r.dir.Snapshot
 }
 
+// Register saves the runner in the coordinator.
 func (r *Runner) Register() (*Runner, error) {
 	sp, err := r.GetSnapshot().FastForward()
 	if err != nil {
@@ -47,7 +52,7 @@ func (r *Runner) Register() (*Runner, error) {
 		return nil, ErrConflict
 	}
 
-	f := cp.NewFile(r.dir.Name, []string{strconv.FormatInt(r.InstanceId, 10)}, new(cp.ListCodec), sp)
+	f := cp.NewFile(r.dir.Name, []string{strconv.FormatInt(r.InstanceID, 10)}, new(cp.ListCodec), sp)
 	f, err = f.Save()
 	if err != nil {
 		return nil, err
@@ -57,6 +62,7 @@ func (r *Runner) Register() (*Runner, error) {
 	return r, nil
 }
 
+// Unregister removes the Runner from the store.
 func (r *Runner) Unregister() error {
 	sp, err := r.GetSnapshot().FastForward()
 	if err != nil {
@@ -65,6 +71,7 @@ func (r *Runner) Unregister() error {
 	return r.dir.Join(sp).Del("/")
 }
 
+// Runners returns all runners known.
 func (s *Store) Runners() (runners []*Runner, err error) {
 	hosts, err := s.GetSnapshot().Getdir(runnersPath)
 	if err != nil {
@@ -81,6 +88,7 @@ func (s *Store) Runners() (runners []*Runner, err error) {
 	return
 }
 
+// RunnersByHost returns all Runners for a given host.
 func (s *Store) RunnersByHost(host string) ([]*Runner, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -107,6 +115,7 @@ func (s *Store) RunnersByHost(host string) ([]*Runner, error) {
 	return runners, nil
 }
 
+// GetRunner returns the Runner for the given addr.
 func (s *Store) GetRunner(addr string) (*Runner, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -115,6 +124,7 @@ func (s *Store) GetRunner(addr string) (*Runner, error) {
 	return getRunner(addr, sp)
 }
 
+// WatchRunnerStart sends all runners transitioned to start.
 func (s *Store) WatchRunnerStart(ch chan *Runner, errch chan error) {
 	var sp cp.Snapshotable = s
 	for {
@@ -139,6 +149,7 @@ func (s *Store) WatchRunnerStart(ch chan *Runner, errch chan error) {
 	}
 }
 
+// WatchRunnerStop sends all Runners transitioned to stop.
 func (s *Store) WatchRunnerStop(ch chan string, errch chan error) {
 	var sp cp.Snapshotable = s
 	for {
@@ -173,13 +184,13 @@ func getRunner(addr string, s cp.Snapshotable) (*Runner, error) {
 		return nil, err
 	}
 	data := f.Value.([]string)
-	insIdStr := data[0]
-	insId, err := parseInstanceId(insIdStr)
+	insIDStr := data[0]
+	insID, err := parseInstanceID(insIDStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return storeFromSnapshotable(sp).NewRunner(addr, insId), nil
+	return storeFromSnapshotable(sp).NewRunner(addr, insID), nil
 }
 
 func waitRunners(s cp.Snapshotable) (cp.Event, error) {

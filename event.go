@@ -7,15 +7,17 @@ package visor
 
 import (
 	"fmt"
-	cp "github.com/soundcloud/cotterpin"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	cp "github.com/soundcloud/cotterpin"
 )
 
 const charPat = `[-.[:alnum:]]`
 
+// EventData is used to represent information encoded in the file path.
 type EventData struct {
 	App      *string
 	Instance *string
@@ -49,8 +51,10 @@ type Event struct {
 	Rev    int64
 }
 
+// EventType is the used to distinguish events.
 type EventType string
 
+// EventTypes.
 const (
 	EvAppReg    = EventType("app-register")
 	EvAppUnreg  = EventType("app-unregister")
@@ -115,7 +119,6 @@ func (s *Store) WatchEventRaw(listener chan *Event) error {
 
 		listener <- event
 	}
-	return nil
 }
 
 // WatchEvent wraps WatchEventRaw with additional information.
@@ -139,7 +142,6 @@ func (s *Store) WatchEvent(listener chan *Event) error {
 
 		listener <- event
 	}
-	return nil
 }
 
 func canonicalizeMetadata(etype EventType, uncanonicalized EventData, s cp.Snapshotable) (source cp.Snapshotable, err error) {

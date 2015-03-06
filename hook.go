@@ -35,6 +35,7 @@ func (a *App) NewHook(name, script string) *Hook {
 	}
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (h *Hook) GetSnapshot() cp.Snapshot {
 	return h.file.Snapshot
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func revSetup() (s *Store, app *App) {
-	s, err := DialUri(DefaultUri, "/revision-test")
+	s, err := DialURI(DefaultURI, "/revision-test")
 	if err != nil {
 		panic(err)
 	}

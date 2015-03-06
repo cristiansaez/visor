@@ -18,10 +18,13 @@ import (
 	cp "github.com/soundcloud/cotterpin"
 )
 
+// SegenaVersion encodes the expected tree layout and MUST be increased
+// whenever breaking changes are introduced.
 const SchemaVersion = 5
 
+// Defaults and paths
 const (
-	DefaultUri     = "doozer:?ca=localhost:8046"
+	DefaultURI     = "doozer:?ca=localhost:8046"
 	DefaultRoot    = "/visor"
 	startPort      = 8000
 	nextPortPath   = "/next-port"
@@ -35,11 +38,13 @@ const (
 // Set *automatically* at link time (see Makefile)
 var Version string
 
+// Store is the representation of the coordinator tree.
 type Store struct {
 	snapshot cp.Snapshot
 }
 
-func DialUri(uri, root string) (*Store, error) {
+// DialURI sets up a new Store.
+func DialURI(uri, root string) (*Store, error) {
 	sp, err := cp.DialUri(uri, root)
 	if err != nil {
 		return nil, err
@@ -47,10 +52,12 @@ func DialUri(uri, root string) (*Store, error) {
 	return &Store{sp}, nil
 }
 
+// GetSnapshot satisfies the cp.Snapshotable interface.
 func (s *Store) GetSnapshot() cp.Snapshot {
 	return s.snapshot
 }
 
+// FastForward advances the store to the lastet revision.
 func (s *Store) FastForward() (*Store, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -59,6 +66,7 @@ func (s *Store) FastForward() (*Store, error) {
 	return &Store{sp}, nil
 }
 
+// Init sets up expected paths.
 func (s *Store) Init() (*Store, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -95,6 +103,7 @@ func (s *Store) Init() (*Store, error) {
 	return s, nil
 }
 
+// Scale creates tickets for either new or existing instances.
 func (s *Store) Scale(app, rev, proc, env string, factor int) (tickets []*Instance, current int, err error) {
 	if err := validateInput(app); err != nil {
 		return nil, -1, errorf(err, "given app not valid: %s (%s)", app, err)
@@ -185,7 +194,7 @@ func (s *Store) Scale(app, rev, proc, env string, factor int) (tickets []*Instan
 			err = ins.Stop()
 			if err != nil {
 				if IsErrInvalidState(err) {
-					err = errorf(ErrInvalidState, "instance '%d' isn't running", ins.Id)
+					err = errorf(ErrInvalidState, "instance '%d' isn't running", ins.ID)
 				}
 				return nil, -1, err
 			}
@@ -251,6 +260,7 @@ func (s *Store) GetPms() ([]string, error) {
 	return sp.Getdir(pmDir)
 }
 
+// GetAppNames returns names of all registered apps.
 func (s *Store) GetAppNames() ([]string, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -259,6 +269,7 @@ func (s *Store) GetAppNames() ([]string, error) {
 	return sp.Getdir("apps")
 }
 
+// RegisterLogger given an address and a version stores the Logger.
 func (s *Store) RegisterLogger(addr, version string) (*Store, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -272,6 +283,7 @@ func (s *Store) RegisterLogger(addr, version string) (*Store, error) {
 	return s, nil
 }
 
+// UnregisterLogger removes the logger for the given address from the store.
 func (s *Store) UnregisterLogger(addr string) error {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -280,6 +292,7 @@ func (s *Store) UnregisterLogger(addr string) error {
 	return s.GetSnapshot().Del(path.Join(loggerDir, host+"-"+port))
 }
 
+// RegisterPm stores the pm for the given host.
 func (s *Store) RegisterPm(host, version string) (*Store, error) {
 	sp, err := s.GetSnapshot().Set(path.Join(pmDir, host), timestamp()+" "+version)
 	if err != nil {
@@ -289,10 +302,12 @@ func (s *Store) RegisterPm(host, version string) (*Store, error) {
 	return s, nil
 }
 
+// UnregisterPm removes the pm for the given host.
 func (s *Store) UnregisterPm(host string) error {
 	return s.GetSnapshot().Del(path.Join(pmDir, host))
 }
 
+// RegisterProxy stores the proxy for the given host.
 func (s *Store) RegisterProxy(host string) (*Store, error) {
 	sp, err := s.GetSnapshot().Set(path.Join(proxyDir, host), timestamp())
 	if err != nil {
@@ -302,6 +317,8 @@ func (s *Store) RegisterProxy(host string) (*Store, error) {
 	return s, nil
 }
 
+// SetSchemaVersion is used to update the store schema which is used for
+// validation.
 func (s *Store) SetSchemaVersion(version int) error {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -314,6 +331,7 @@ func (s *Store) SetSchemaVersion(version int) error {
 	return nil
 }
 
+// VerifySchema will error if there is a schema missmatch.
 func (s *Store) VerifySchema() (int, error) {
 	sp, err := s.GetSnapshot().FastForward()
 	if err != nil {
@@ -329,6 +347,7 @@ func (s *Store) VerifySchema() (int, error) {
 	return v, nil
 }
 
+// UnregisterProxy removes the proxy for the given host from the store.
 func (s *Store) UnregisterProxy(host string) error {
 	return s.GetSnapshot().Del(path.Join(proxyDir, host))
 }

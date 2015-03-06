@@ -11,7 +11,7 @@ import (
 )
 
 func procSetup(appid string) (s *Store, app *App) {
-	s, err := DialUri(DefaultUri, "/proc-test")
+	s, err := DialURI(DefaultURI, "/proc-test")
 	if err != nil {
 		panic(err)
 	}
@@ -162,7 +162,7 @@ func TestProcGetDoneInstances(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = ins.Unregister("proc-test", errors.New("done here."))
+		err = ins.Unregister("proc-test", errors.New("done here"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -207,7 +207,7 @@ func TestProcGetFailedInstances(t *testing.T) {
 		instances = append(instances, ins)
 	}
 	for i := 0; i < 4; i++ {
-		_, err := instances[i].Failed("10.0.0.1", errors.New("no reason."))
+		_, err := instances[i].Failed("10.0.0.1", errors.New("no reason"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -218,7 +218,7 @@ func TestProcGetFailedInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(failed) != 4 {
-		t.Errorf("list is missing instances: %s", len(failed))
+		t.Errorf("list is missing instances: %d", len(failed))
 	}
 
 	is, err := proc.GetInstances()
@@ -258,7 +258,7 @@ func TestProcGetLostInstances(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		_, err := instances[i].Lost("watchman", errors.New("it's gone!!!"))
+		_, err := instances[i].Lost("watchman", errors.New("it's gone"))
 		if err != nil {
 			t.Fatal(err)
 		}
