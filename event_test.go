@@ -209,6 +209,56 @@ func TestEventProcUnregistered(t *testing.T) {
 	}
 }
 
+func TestEventProcAttrs(t *testing.T) {
+	var (
+		s, l    = eventSetup()
+		app     = eventAppSetup(s, "proc-attrs")
+		proc    = s.NewProc(app, "mightymouse")
+		control = &TrafficControl{
+			Share: 80,
+		}
+	)
+
+	app, err := app.Register()
+	if err != nil {
+		t.Error(err)
+	}
+
+	proc, err = proc.Register()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		err := storeFromSnapshotable(proc).WatchEvent(l)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	proc.Attrs.TrafficControl = control
+
+	proc, err = proc.StoreAttrs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		ev = expectEvent(EvProcAttrs, proc, l, t)
+		p  = ev.Source.(*Proc)
+	)
+
+	if ev.Path.Proc == nil || (*ev.Path.Proc != proc.Name) {
+		t.Error("event.Path doesn't contain expected data")
+	}
+	if ev.Path.App == nil || (*ev.Path.App != app.Name) {
+		t.Error("event.Path doesn't contain expected data")
+	}
+	if want, have := control, p.Attrs.TrafficControl; !reflect.DeepEqual(want, have) {
+		t.Errorf("want %#v, have %#v", want, have)
+	}
+}
+
 func TestEventInstanceRegistered(t *testing.T) {
 	s, l := eventSetup()
 	app := eventAppSetup(s, "regmouse")

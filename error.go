@@ -20,6 +20,7 @@ var (
 	ErrInvalidKey      = errors.New("invalid key")
 	ErrInvalidState    = errors.New("invalid state")
 	ErrInvalidFile     = errors.New("invalid file")
+	ErrInvalidShare    = errors.New("invalid share")
 	ErrBadProcName     = errors.New("invalid proc type name: only alphanumeric chars allowed")
 	ErrUnauthorized    = errors.New("operation is not permitted")
 	ErrNotFound        = errors.New("object not found")
@@ -91,6 +92,11 @@ func IsErrInvalidArgument(err error) bool {
 // IsErrInvalidKey is a helper to test for ErrInvalidKey.
 func IsErrInvalidKey(err error) bool {
 	return unwrapErr(err) == ErrInvalidKey
+}
+
+// IsErrInvalidShare is a helper to test for ErrInvalidShare.
+func IsErrInvalidShare(err error) bool {
+	return unwrapErr(err) == ErrInvalidShare
 }
 
 func errorf(err error, format string, args ...interface{}) *Error {

@@ -18,18 +18,20 @@ var reProcName = regexp.MustCompile("^[[:alnum:]]+$")
 
 // Proc represents a process type with a certain scale.
 type Proc struct {
-	dir        *cp.Dir
-	Name       string
-	App        *App
-	Port       int
-	Attrs      ProcAttrs
-	Registered time.Time
+	dir         *cp.Dir
+	Name        string
+	App         *App
+	Port        int
+	ControlPort int
+	Attrs       ProcAttrs
+	Registered  time.Time
 }
 
 // ProcAttrs are mutable extra information for a proc.
 type ProcAttrs struct {
-	Limits         ResourceLimits `json:"limits"`
-	LogPersistence bool           `json:"log_persistence"`
+	Limits         ResourceLimits  `json:"limits"`
+	LogPersistence bool            `json:"log_persistence"`
+	TrafficControl *TrafficControl `json:"trafficControl"`
 }
 
 // ResourceLimits are per proc constraints like memory/cpu.
@@ -38,10 +40,26 @@ type ResourceLimits struct {
 	MemoryLimitMb *int `json:"memory-limit-mb,omitemproc"`
 }
 
+// TrafficControl enables and sets traffic shares a proc should receive.
+type TrafficControl struct {
+	Share int `json:"share"`
+}
+
+// Validate checks if the configured traffic share is in the allowed
+// boundaries.
+func (t *TrafficControl) Validate() error {
+	if t.Share < 0 || t.Share > 100 {
+		return errorf(ErrInvalidShare, "must be between 0 and 100")
+	}
+
+	return nil
+}
+
 const (
-	procsPath      = "procs"
-	procsPortPath  = "port"
-	procsAttrsPath = "attrs"
+	procsPath            = "procs"
+	procsPortPath        = "port"
+	procsControlPortPath = "port-control"
+	procsAttrsPath       = "attrs"
 )
 
 // NewProc creates a Proc given App and name.
@@ -79,7 +97,7 @@ func (p *Proc) Register() (*Proc, error) {
 
 	p.Port, err = claimNextPort(sp)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't claim port: %s", err.Error())
+		return nil, fmt.Errorf("couldn't claim port: %s", err)
 	}
 
 	port := cp.NewFile(p.dir.Prefix(procsPortPath), p.Port, new(cp.IntCodec), sp)
@@ -88,7 +106,23 @@ func (p *Proc) Register() (*Proc, error) {
 		return nil, err
 	}
 
-	reg := time.Now()
+	// Claim control port.
+	p.ControlPort, err = claimNextPort(sp)
+	if err != nil {
+		return nil, fmt.Errorf("claim control port: %s", err)
+	}
+
+	controlPort := cp.NewFile(p.dir.Prefix(procsControlPortPath), p.ControlPort, new(cp.IntCodec), sp)
+	controlPort, err = controlPort.Save()
+	if err != nil {
+		return nil, err
+	}
+
+	reg, err := parseTime(formatTime(time.Now()))
+	if err != nil {
+		return nil, err
+	}
+
 	d, err := p.dir.Join(sp).Set(registeredPath, formatTime(reg))
 	if err != nil {
 		return nil, err
@@ -221,6 +255,12 @@ func (p Proc) GetRunningRevs() ([]string, error) {
 
 // StoreAttrs saves the set Attrs for the Proc.
 func (p *Proc) StoreAttrs() (*Proc, error) {
+	if p.Attrs.TrafficControl != nil {
+		if err := p.Attrs.TrafficControl.Validate(); err != nil {
+			return nil, err
+		}
+	}
+
 	sp, err := p.GetSnapshot().FastForward()
 	if err != nil {
 		return nil, err
@@ -260,6 +300,17 @@ func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
 		return nil, errorf(ErrNotFound, "port not found for %s-%s", app.Name, name)
 	}
 	p.Port = port.Value.(int)
+
+	controlPort, err := p.dir.GetFile(procsControlPortPath, new(cp.IntCodec))
+	if err != nil {
+		if IsErrNotFound(err) {
+			p.ControlPort = 0
+		} else {
+			return nil, err
+		}
+	} else {
+		p.ControlPort = controlPort.Value.(int)
+	}
 
 	_, err = p.dir.GetFile(procsAttrsPath, &cp.JsonCodec{DecodedVal: &p.Attrs})
 	if err != nil && !cp.IsErrNoEnt(err) {

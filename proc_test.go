@@ -7,6 +7,7 @@ package visor
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -34,20 +35,23 @@ func procSetup(appid string) (s *Store, app *App) {
 }
 
 func TestProcRegister(t *testing.T) {
-	s, app := procSetup("reg123")
-	proc := s.NewProc(app, "whoop")
+	var (
+		s, app = procSetup("reg123")
+		want   = s.NewProc(app, "whoop")
+	)
 
-	proc, err := proc.Register()
+	want, err := want.Register()
 	if err != nil {
 		t.Error(err)
 	}
 
-	check, _, err := proc.GetSnapshot().Exists(proc.dir.Name)
+	have, err := app.GetProc("whoop")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	if !check {
-		t.Errorf("proc %s isn't registered", proc)
+
+	if !reflect.DeepEqual(want, have) {
+		t.Errorf("want %#v, have %#v", want, have)
 	}
 }
 
@@ -280,12 +284,17 @@ func TestProcGetLostInstances(t *testing.T) {
 	}
 }
 
-func TestProcAttributes(t *testing.T) {
-	appid := "app-with-attributes"
-	var memoryLimitMb = 100
-	s, app := procSetup(appid)
+func TestProcAttr(t *testing.T) {
+	var (
+		appid          = "app-with-attributes"
+		s, app         = procSetup(appid)
+		proc           = s.NewProc(app, "web")
+		memoryLimitMb  = 100
+		trafficControl = &TrafficControl{
+			Share: 75,
+		}
+	)
 
-	proc := s.NewProc(app, "web")
 	proc, err := proc.Register()
 	if err != nil {
 		t.Fatal(err)
@@ -330,5 +339,45 @@ func TestProcAttributes(t *testing.T) {
 	}
 	if proc.Attrs.LogPersistence != true {
 		t.Fatalf("LogPersistence should be on after change")
+	}
+
+	// TrafficControl
+	if proc.Attrs.TrafficControl != nil {
+		t.Fatalf("want %#v, have %#v", nil, proc.Attrs.TrafficControl)
+	}
+
+	proc.Attrs.TrafficControl = trafficControl
+
+	if _, err := proc.StoreAttrs(); err != nil {
+		t.Fatal(err)
+	}
+
+	proc, err = app.GetProc("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, have := trafficControl, proc.Attrs.TrafficControl; !reflect.DeepEqual(want, have) {
+		t.Fatalf("want %#v, have %#v", want, have)
+	}
+}
+
+func TestTrafficControlValidate(t *testing.T) {
+	c := &TrafficControl{Share: 70}
+
+	if err := c.Validate(); err != nil {
+		t.Errorf("expected TrafficControl to validate: %s", err)
+	}
+
+	c = &TrafficControl{Share: 110}
+
+	if err := c.Validate(); !IsErrInvalidShare(err) {
+		t.Error("expected TrafficControl to not validate")
+	}
+
+	c = &TrafficControl{Share: -1}
+
+	if err := c.Validate(); !IsErrInvalidShare(err) {
+		t.Error("expected TrafficControl to not validate")
 	}
 }
