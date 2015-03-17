@@ -833,13 +833,9 @@ func (i *Instance) waitStartPath() (*Instance, error) {
 			return nil, err
 		}
 
-		// TODO (alx) This branch becomes unnecessary as soon as all components are migrated.
-		telePort := 0
-		if len(fields) >= 4 {
-			telePort, err = strconv.Atoi(fields[3])
-			if err != nil {
-				return nil, err
-			}
+		telePort, err := strconv.Atoi(fields[3])
+		if err != nil {
+			return nil, err
 		}
 
 		i.started(ip, host, port, telePort)
@@ -1019,10 +1015,7 @@ func getInstance(id int64, s cp.Snapshotable) (*Instance, error) {
 	i.AppName = fields[0]
 	i.RevisionName = fields[1]
 	i.ProcessName = fields[2]
-	// FIXME remove as soon as env migration is done
-	if len(fields) == 4 {
-		i.Env = fields[3]
-	}
+	i.Env = fields[3]
 
 	i.Restarts, _, err = i.getRestarts()
 	if err != nil {
@@ -1031,19 +1024,11 @@ func getInstance(id int64, s cp.Snapshotable) (*Instance, error) {
 
 	f, err = i.dir.GetFile(registeredPath, new(cp.StringCodec))
 	if err != nil {
-		// FIXME remove as soon as instances have consistent registered field
-		if !cp.IsErrNoEnt(err) {
-			return nil, err
-		}
-	} else {
-		i.Registered, err = parseTime(f.Value.(string))
-		if err != nil {
-			// FIXME remove backwards compatible parsing of timestamps before b4fbef0
-			i.Registered, err = time.Parse(UTCFormat, f.Value.(string))
-			if err != nil {
-				return nil, err
-			}
-		}
+		return nil, err
+	}
+	i.Registered, err = parseTime(f.Value.(string))
+	if err != nil {
+		return nil, err
 	}
 
 	f, err = i.claimDir().GetFile(i.IP, new(cp.StringCodec))

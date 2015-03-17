@@ -326,11 +326,7 @@ func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
 	}
 	p.Registered, err = parseTime(f.Value.(string))
 	if err != nil {
-		// FIXME remove backwards compatible parsing of timestamps before b4fbef0
-		p.Registered, err = time.Parse(UTCFormat, f.Value.(string))
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	return p, nil

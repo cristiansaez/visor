@@ -138,11 +138,7 @@ func getRevision(app *App, ref string, s cp.Snapshotable) (*Revision, error) {
 	}
 	r.Registered, err = parseTime(f.Value.(string))
 	if err != nil {
-		// FIXME remove backwards compatible parsing of timestamps before b4fbef0
-		r.Registered, err = time.Parse(UTCFormat, f.Value.(string))
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	return r, nil
