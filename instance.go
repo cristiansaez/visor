@@ -172,7 +172,7 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 		dir:          cp.NewDir(instancePath(id), s.GetSnapshot()),
 	}
 
-	object := cp.NewFile(ins.dir.Prefix("object"), ins.objectArray(), new(cp.ListCodec), s.GetSnapshot())
+	object := cp.NewFile(ins.dir.Prefix(objectPath), ins.objectArray(), new(cp.ListCodec), s.GetSnapshot())
 	object, err = object.Save()
 	if err != nil {
 		return nil, err
