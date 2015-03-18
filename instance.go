@@ -28,24 +28,18 @@ const (
 	statusPath    = "status"
 	stopPath      = "stop"
 	restartsPath  = "restarts"
-)
 
-const (
 	restartFailField = 0
 	restartOOMField  = 1
-)
 
-// InstanceStati.
-const (
 	InsStatusPending  InsStatus = "pending"
-	InsStatusClaimed            = "claimed"
-	InsStatusRunning            = "running"
-	InsStatusStopping           = "stopping"
-
-	InsStatusFailed = "failed"
-	InsStatusExited = "exited"
-	InsStatusLost   = "lost"
-	InsStatusDone   = "done"
+	InsStatusClaimed  InsStatus = "claimed"
+	InsStatusRunning  InsStatus = "running"
+	InsStatusStopping InsStatus = "stopping"
+	InsStatusFailed   InsStatus = "failed"
+	InsStatusExited   InsStatus = "exited"
+	InsStatusLost     InsStatus = "lost"
+	InsStatusDone     InsStatus = "done"
 )
 
 // InsStatus describes the current state of the instance state machine.
