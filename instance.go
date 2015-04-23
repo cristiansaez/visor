@@ -889,6 +889,23 @@ func (s *Store) GetInstances() ([]*Instance, error) {
 	return instances, nil
 }
 
+// GetLostInstances returns all existing instances in lost state.
+func (s *Store) GetLostInstances() ([]*Instance, error) {
+	is, err := s.GetInstances()
+	if err != nil {
+		return nil, err
+	}
+
+	ls := []*Instance{}
+	for _, i := range is {
+		if i.Status == InsStatusLost {
+			ls = append(ls, i)
+		}
+	}
+
+	return ls, nil
+}
+
 // WatchInstanceStart sends Instance over the given listener channel which
 // transitioned to start.
 func (s *Store) WatchInstanceStart(listener chan *Instance, errors chan error) {
