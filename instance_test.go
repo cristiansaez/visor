@@ -289,6 +289,16 @@ func TestInstanceStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = ins.Unregister("test-suite", fmt.Errorf("cleanup"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ins.Stop()
+	if !IsErrNotFound(err) {
+		t.Errorf("have %v, want %v", err, ErrNotFound)
+	}
 	// Note: we aren't checking that the files are created in the coordinator,
 	// that is better tested via events in event.go, as we don't want to couple
 	// the tests with the schema.
@@ -363,6 +373,16 @@ func TestInstanceRestarted(t *testing.T) {
 	}
 	if ins3.Restarts.Fail != 2 {
 		t.Error("expected restart count to be set to 2")
+	}
+
+	err = ins1.Unregister("test-bot", fmt.Errorf("cleanup"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ins1.Restarted(InsRestarts{0, 3})
+	if have, want := err, ErrNotFound; !IsErrNotFound(err) {
+		t.Errorf("have %v, want %v", have, want)
 	}
 }
 

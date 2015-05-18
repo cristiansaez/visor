@@ -328,13 +328,18 @@ func (i *Instance) Restarted(restarts InsRestarts) (*Instance, error) {
 	//           start    = 10.0.0.1 24691 localhost
 	// +         restarts = 1 0
 	//
-	if i.Status != InsStatusRunning {
-		return i, nil
-	}
-
 	sp, err := i.GetSnapshot().FastForward()
 	if err != nil {
 		return i, err
+	}
+
+	i, err = getInstance(i.ID, sp)
+	if err != nil {
+		return nil, err
+	}
+
+	if i.Status != InsStatusRunning {
+		return i, nil
 	}
 
 	f := cp.NewFile(i.dir.Prefix(restartsPath), nil, new(cp.ListIntCodec), sp)
@@ -358,10 +363,20 @@ func (i *Instance) Stop() error {
 	//           ...
 	// +         stop =
 	//
+	sp, err := i.GetSnapshot().FastForward()
+	if err != nil {
+		return err
+	}
+
+	i, err = getInstance(i.ID, sp)
+	if err != nil {
+		return err
+	}
+
 	if i.Status != InsStatusRunning {
 		return ErrInvalidState
 	}
-	_, err := i.dir.Set("stop", "")
+	_, err = i.dir.Set(stopPath, "")
 	if err != nil {
 		return err
 	}
