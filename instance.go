@@ -162,6 +162,7 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 		RevisionName: rev,
 		ProcessName:  proc,
 		Env:          env,
+		Registered:   time.Now(),
 		Status:       InsStatusPending,
 		dir:          cp.NewDir(instancePath(id), s.GetSnapshot()),
 	}
@@ -171,23 +172,26 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 	if err != nil {
 		return nil, err
 	}
-	reg := time.Now()
-	_, err = ins.dir.Set(registeredPath, formatTime(reg))
-	if err != nil {
-		return
-	}
-	ins.Registered = reg
-	_, err = ins.GetSnapshot().Set(ins.procStatusPath(InsStatusRunning), formatTime(reg))
-	if err != nil {
-		return nil, err
-	}
 
 	start := cp.NewFile(ins.dir.Prefix(startPath), "", new(cp.StringCodec), s.GetSnapshot())
 	start, err = start.Save()
 	if err != nil {
 		return nil, err
 	}
-	ins.dir = ins.dir.Join(start)
+
+	// Create the file used for lookups of existing instances per proc.
+	_, err = ins.GetSnapshot().Set(ins.procStatusPath(InsStatusRunning), formatTime(ins.Registered))
+	if err != nil {
+		return nil, err
+	}
+
+	// This should be the last path set in order for the event system to work properly.
+	registered, err := ins.dir.Set(registeredPath, formatTime(ins.Registered))
+	if err != nil {
+		return
+	}
+
+	ins.dir = ins.dir.Join(registered)
 
 	return
 }
