@@ -83,7 +83,7 @@ const (
 	pathRev
 	pathProc
 	pathProcAttrs
-	pathIns
+	pathInsRegistered
 	pathInsStatus
 	pathInsStart
 	pathInsStop
@@ -94,7 +94,7 @@ var eventPatterns = map[*regexp.Regexp]eventPath{
 	regexp.MustCompile("^/apps/(" + charPat + "+)/revs/(" + charPat + "+)/registered$"):  pathRev,
 	regexp.MustCompile("^/apps/(" + charPat + "+)/procs/(" + charPat + "+)/registered$"): pathProc,
 	regexp.MustCompile("^/apps/(" + charPat + "+)/procs/(" + charPat + "+)/attrs$"):      pathProcAttrs,
-	regexp.MustCompile("^/instances/([-0-9]+)/object$"):                                  pathIns,
+	regexp.MustCompile("^/instances/([-0-9]+)/registered$"):                              pathInsRegistered,
 	regexp.MustCompile("^/instances/([-0-9]+)/status$"):                                  pathInsStatus,
 	regexp.MustCompile("^/instances/([-0-9]+)/start$"):                                   pathInsStart,
 	regexp.MustCompile("^/instances/([-0-9]+)/stop$"):                                    pathInsStop,
@@ -247,7 +247,7 @@ func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
 				if src.IsSet() {
 					etype = EvProcAttrs
 				}
-			case pathIns:
+			case pathInsRegistered:
 				uncanonicalized.Instance = &match[1]
 
 				if src.IsSet() {
