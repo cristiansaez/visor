@@ -256,19 +256,17 @@ func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
 					etype = EvInsUnreg
 				}
 			case pathInsStart:
-				uncanonicalized.Instance = &match[1]
+				body := string(src.Body)
 
-				if !src.IsSet() {
+				if !src.IsSet() || body == "" {
 					break
 				}
-				body := string(src.Body)
-				if body == "" {
-					break
-				} else {
-					fields := strings.Fields(body)
-					if len(fields) > 1 {
-						etype = EvInsStart
-					}
+
+				uncanonicalized.Instance = &match[1]
+
+				fields := strings.Fields(body)
+				if len(fields) > 1 {
+					etype = EvInsStart
 				}
 			case pathInsStatus:
 				uncanonicalized.Instance = &match[1]
@@ -292,10 +290,10 @@ func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
 		}
 	}
 
-	if src.IsSet() {
+	if etype != EvUnknown && src.IsSet() {
 		canonicalized, err = canonicalizeMetadata(etype, uncanonicalized, s)
 		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing inputs: %s", err)
+			return nil, fmt.Errorf("error canonicalizing inputs %+v: %s", src, err)
 		}
 	}
 

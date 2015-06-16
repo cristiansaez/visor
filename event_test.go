@@ -263,7 +263,12 @@ func TestEventInstanceRegistered(t *testing.T) {
 	s, l := eventSetup()
 	app := eventAppSetup(s, "regmouse")
 
-	go s.WatchEvent(l)
+	go func() {
+		err := s.WatchEvent(l)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	ins, err := s.RegisterInstance(app.Name, "stable", "web", "default")
 	if err != nil {
