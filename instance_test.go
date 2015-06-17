@@ -367,13 +367,6 @@ func TestInstanceRestarted(t *testing.T) {
 	if ins2.Restarts.Fail != 2 {
 		t.Error("expected restart count to be set to 2")
 	}
-	ins3, err := storeFromSnapshotable(ins).GetInstance(ins.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ins3.Restarts.Fail != 2 {
-		t.Error("expected restart count to be set to 2")
-	}
 
 	err = ins1.Unregister("test-bot", fmt.Errorf("cleanup"))
 	if err != nil {
@@ -463,8 +456,9 @@ func TestWatchInstanceStartAndStop(t *testing.T) {
 	env := "w-env"
 	s := instanceSetup()
 	l := make(chan *Instance)
+	errc := make(chan error)
 
-	go s.WatchInstanceStart(l, make(chan error))
+	go s.WatchInstanceStart(l, errc)
 
 	ins, err := s.RegisterInstance(app, rev, proc, env)
 	if err != nil {
@@ -478,6 +472,8 @@ func TestWatchInstanceStartAndStop(t *testing.T) {
 			break
 		}
 		t.Errorf("received unexpected instance: %s", ins.String())
+	case err := <-errc:
+		t.Fatal(err)
 	case <-time.After(time.Second):
 		t.Errorf("expected instance, got timeout")
 	}

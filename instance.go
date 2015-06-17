@@ -692,13 +692,7 @@ func (i *Instance) claimed(ip string) {
 func (i *Instance) getRestarts() (InsRestarts, *cp.File, error) {
 	var restarts InsRestarts
 
-	sp, err := i.GetSnapshot().FastForward()
-	if err != nil {
-		return restarts, nil, err
-	}
-	i.dir = i.dir.Join(sp)
-
-	f, err := sp.GetFile(i.dir.Prefix(restartsPath), new(cp.ListIntCodec))
+	f, err := i.dir.GetFile(i.dir.Prefix(restartsPath), new(cp.ListIntCodec))
 	if err == nil {
 		fields := f.Value.([]int)
 
@@ -928,17 +922,16 @@ func (s *Store) GetLostInstances() ([]*Instance, error) {
 // WatchInstanceStart sends Instance over the given listener channel which
 // transitioned to start.
 func (s *Store) WatchInstanceStart(listener chan *Instance, errors chan error) {
-	// instances/*/start =
 	sp := s.GetSnapshot()
 	for {
-		ev, err := sp.Wait(path.Join(instancesPath, "*", startPath))
+		ev, err := sp.Wait(path.Join(instancesPath, "*", registeredPath))
 		if err != nil {
 			errors <- err
 			return
 		}
 		sp = sp.Join(ev)
 
-		if !ev.IsSet() || string(ev.Body) != "" {
+		if !ev.IsSet() {
 			continue
 		}
 		idstr := strings.Split(ev.Path, "/")[2]
