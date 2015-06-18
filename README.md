@@ -2,8 +2,8 @@
 
 Visor is a library which provides an abstraction over a global process state on top of [doozerd][5].
 
-[1]: https://drone.io/github.com/soundcloud/visor/status.png
-[2]: https://drone.io/github.com/soundcloud/visor/latest
+[1]: https://travis-ci.org/soundcloud/visor.svg?branch=master
+[2]: https://travis-ci.org/soundcloud/visor
 [3]: https://coveralls.io/repos/soundcloud/visor/badge.png?branch=master
 [4]: https://coveralls.io/r/soundcloud/visor
 [5]: https://github.com/ha/doozerd

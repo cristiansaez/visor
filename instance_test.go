@@ -687,6 +687,9 @@ func TestInstanceSerialisation(t *testing.T) {
 	}
 
 	ins1.dir = ins.dir
+	ins1.Claimed = ins1.Claimed.In(ins.Claimed.Location())
+	ins1.Registered = ins1.Registered.In(ins.Registered.Location())
+	ins1.Termination.Time = ins1.Termination.Time.In(ins.Termination.Time.Location())
 
 	if !reflect.DeepEqual(ins, ins1) {
 		t.Errorf("serialised instance doesn't match original:\n%#v\n%#v", ins, ins1)

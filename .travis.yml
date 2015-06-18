@@ -1,11 +1,11 @@
 language: go
-go: 1.1
+go: 1.4.2
 
 install:
   - go get -a github.com/soundcloud/doozer
   - go get -a github.com/soundcloud/doozerd
   - go get -a github.com/soundcloud/cotterpin
-  - /home/travis/gopath/bin/doozerd -hist=100 -w=false &> /dev/null &
+  - /home/travis/gopath/bin/doozerd -solo -w=false &> /dev/null &
   - sleep 3
   - nc -z 127.0.0.1 8046
 script:
