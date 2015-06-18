@@ -40,18 +40,18 @@ func eventAppSetup(s *Store, name string) *App {
 	return s.NewApp(name, "git://"+name, name+"stack")
 }
 
-func expectEvent(etype EventType, s cp.Snapshotable, l chan *Event, t *testing.T) (event *Event) {
+func expectEvent(etype EventType, s cp.Snapshotable, l chan *Event, t *testing.T) *Event {
 	for {
 		select {
-		case event = <-l:
+		case event := <-l:
 			if event.Type == etype {
 				if reflect.TypeOf(event.Source) != reflect.TypeOf(s) {
-					t.Errorf("types are not equal %#v != %#v", event.Source, s)
+					t.Errorf("%s types are not equal: %#v != %#v", etype, event.Source, s)
 				}
 			} else {
 				t.Errorf("received incorrect event type: expected %s got %s %s", etype, event, event.Type)
 			}
-			return
+			return event
 		case <-time.After(time.Second):
 			t.Fatalf("expected event type %s got timeout", etype)
 		}
@@ -346,4 +346,25 @@ func TestEventInstanceStateChange(t *testing.T) {
 		t.Error(err)
 	}
 	expectEvent(EvInsExit, ins, l, t)
+}
+
+func TestEventInstanceEnrichment(t *testing.T) {
+	s, l := eventSetup()
+
+	ins, err := s.RegisterInstance("foo", "bar", "baz", "qux")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ins.Unregister("common-host", errors.New("exited")); err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		if err := s.WatchEvent(l); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	expectEvent(EvInsReg, ins, l, t)
+	expectEvent(EvInsUnreg, nil, l, t)
 }
