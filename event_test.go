@@ -330,10 +330,14 @@ func TestEventInstanceStateChange(t *testing.T) {
 	}
 
 	instance := ev.Source.(*Instance)
-
 	if instance.IP != ip || instance.Host != host || instance.Port != port {
 		t.Fatal("instance fields don't match")
 	}
+
+	if err := ins.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	expectEvent(EvInsStop, ins, l, t)
 
 	ins, err = ins.Failed(ip, errors.New("no reason"))
 	if err != nil {

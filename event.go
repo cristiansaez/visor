@@ -66,6 +66,7 @@ const (
 	EvInsReg    = EventType("instance-register")
 	EvInsUnreg  = EventType("instance-unregister")
 	EvInsStart  = EventType("instance-start")
+	EvInsStop   = EventType("instance-stop")
 	EvInsFail   = EventType("instance-fail")
 	EvInsExit   = EventType("instance-exit")
 	EvInsLost   = EventType("instance-lost")
@@ -195,7 +196,7 @@ func canonicalizeMetadata(etype EventType, uncanonicalized EventData, s cp.Snaps
 		source = rev
 	case EvProcReg, EvProcAttrs:
 		source = proc
-	case EvInsReg, EvInsStart, EvInsFail, EvInsExit, EvInsLost:
+	case EvInsReg, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
 		source = ins
 	}
 
@@ -268,6 +269,13 @@ func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
 				if len(fields) > 1 {
 					etype = EvInsStart
 				}
+			case pathInsStop:
+				if !src.IsSet() {
+					break
+				}
+
+				uncanonicalized.Instance = &match[1]
+				etype = EvInsStop
 			case pathInsStatus:
 				uncanonicalized.Instance = &match[1]
 
