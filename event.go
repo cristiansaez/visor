@@ -105,27 +105,9 @@ func (ev *Event) String() string {
 	return fmt.Sprintf("%#v", ev)
 }
 
-// WatchEventRaw watches for changes to the registry and sends
-// them as *Event objects to the provided channel.
-func (s *Store) WatchEventRaw(listener chan *Event) error {
-	sp := s.GetSnapshot()
-	for {
-		ev, err := sp.Wait(globPlural)
-		if err != nil {
-			return err
-		}
-		sp = sp.Join(ev)
-
-		event, err := enrichEvent(&ev, ev)
-		if err != nil {
-			return err
-		}
-
-		listener <- event
-	}
-}
-
-// WatchEvent wraps WatchEventRaw with additional information.
+// WatchEvent watches for changes on the store, enriches them with the
+// corresponding domain object and sends them as Event object to the given
+// channel.
 func (s *Store) WatchEvent(listener chan *Event) error {
 	sp := s.GetSnapshot()
 	for {
