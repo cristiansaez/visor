@@ -173,12 +173,6 @@ func (s *Store) RegisterInstance(app, rev, proc, env string) (ins *Instance, err
 		return nil, err
 	}
 
-	start := cp.NewFile(ins.dir.Prefix(startPath), "", new(cp.StringCodec), s.GetSnapshot())
-	start, err = start.Save()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the file used for lookups of existing instances per proc.
 	_, err = ins.GetSnapshot().Set(ins.procStatusPath(InsStatusRunning), formatTime(ins.Registered))
 	if err != nil {
@@ -224,15 +218,24 @@ func (i *Instance) Claim(host string) (*Instance, error) {
 	// -         start  =
 	// +         start  = 10.0.0.1
 	//
-	f, err := i.dir.GetFile(startPath, new(cp.ListCodec))
+	sp, err := i.GetSnapshot().FastForward()
 	if err != nil {
 		return nil, err
 	}
-	fields := f.Value.([]string)
-	if len(fields) > 0 {
-		return nil, errorf(ErrInsClaimed, "%s already claimed", i)
+	d := i.dir.Join(sp)
+
+	f, err := i.dir.GetFile(startPath, new(cp.ListCodec))
+	if err != nil {
+		if !cp.IsErrNoEnt(err) {
+			return nil, err
+		}
+	} else {
+		fields := f.Value.([]string)
+		if len(fields) > 0 {
+			return nil, errorf(ErrInsClaimed, "%s already claimed", i)
+		}
+		d = i.dir.Join(f)
 	}
-	d := i.dir.Join(f)
 
 	d, err = d.Set(startPath, host)
 	if err != nil {
@@ -243,12 +246,15 @@ func (i *Instance) Claim(host string) (*Instance, error) {
 	}
 
 	claimed := time.Now()
+
 	d, err = i.claimDir().Join(d).Set(host, formatTime(claimed))
 	if err != nil {
 		return nil, err
 	}
+
 	i.Claimed = claimed
 	i.dir = i.dir.Join(d)
+
 	return i, err
 }
 
