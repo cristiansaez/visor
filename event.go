@@ -104,7 +104,9 @@ func (ev *Event) String() string {
 // WatchEvent watches for changes on the store, enriches them with the
 // corresponding domain object and sends them as Event object to the given
 // channel.
-func (s *Store) WatchEvent(listener chan *Event) error {
+// Optionally any number of EventTypes can be given in order to filter which
+// events will be sent over the given channel.
+func (s *Store) WatchEvent(listener chan *Event, filter ...EventType) error {
 	sp := s.GetSnapshot()
 	for {
 		ev, err := sp.Wait(globPlural)
@@ -117,11 +119,12 @@ func (s *Store) WatchEvent(listener chan *Event) error {
 		if err != nil {
 			return err
 		}
-
-		if event.Type == EvUnknown {
+		if !event.match(filter) {
 			continue
 		}
-
+		if err := event.enrich(); err != nil {
+			return err
+		}
 		listener <- event
 	}
 }
@@ -201,43 +204,57 @@ func newEvent(src cp.Event) (*Event, error) {
 		}
 	}
 
-	if event.Type != EvUnknown && src.IsSet() {
-		var err error
-		event.Source, err = getSource(event.Type, event.Path, src)
-		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing inputs %+v: %s", src, err)
-		}
-	}
-
 	return event, nil
 }
 
-func getSource(etype EventType, path EventData, s cp.Snapshotable) (cp.Snapshotable, error) {
+func (e *Event) match(filter []EventType) bool {
+	if e.Type == EvUnknown {
+		return false
+	}
+	if len(filter) == 0 {
+		return true
+	}
+	for _, t := range filter {
+		if e.Type == t {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Event) enrich() error {
 	var (
 		app *App
 		err error
 	)
 
-	if path.App != nil {
-		app, err = getApp(*path.App, s)
+	if !e.raw.IsSet() {
+		return nil
+	}
+
+	if e.Path.App != nil {
+		app, err = getApp(*e.Path.App, e.raw)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	switch etype {
+	switch e.Type {
 	case EvAppReg:
-		return app, nil
+		e.Source, err = app, nil
 	case EvRevReg:
-		return getRevision(app, *path.Revision, s)
+		e.Source, err = getRevision(app, *e.Path.Revision, e.raw)
 	case EvProcReg, EvProcAttrs:
-		return getProc(app, *path.Proc, s)
+		e.Source, err = getProc(app, *e.Path.Proc, e.raw)
 	case EvInsReg, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
-		id, err := strconv.ParseInt(*path.Instance, 10, 64)
+		id, err := strconv.ParseInt(*e.Path.Instance, 10, 64)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return getInstance(id, s)
+		e.Source, err = getInstance(id, e.raw)
 	}
-	return nil, nil
+	if err != nil {
+		return fmt.Errorf("error enriching event %+v: %s", e.raw, err)
+	}
+	return nil
 }

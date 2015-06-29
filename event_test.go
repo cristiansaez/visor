@@ -372,3 +372,30 @@ func TestEventInstanceEnrichment(t *testing.T) {
 	expectEvent(EvInsReg, ins, l, t)
 	expectEvent(EvInsUnreg, nil, l, t)
 }
+
+func TestEventFilter(t *testing.T) {
+	s, l := eventSetup()
+
+	ins, err := s.RegisterInstance("foo", "bar", "baz", "qux")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ins.Claim("1.2.3.4"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ins.Unclaim("1.2.3.4"); err != nil {
+		t.Fatal(err)
+	}
+	if err := ins.Unregister("common-host", errors.New("exited")); err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		if err := s.WatchEvent(l, EvInsStart, EvInsUnreg); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	expectEvent(EvInsStart, ins, l, t)
+	expectEvent(EvInsUnreg, nil, l, t)
+}
