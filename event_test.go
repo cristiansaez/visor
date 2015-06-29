@@ -316,6 +316,16 @@ func TestEventInstanceStateChange(t *testing.T) {
 
 	go storeFromSnapshotable(ins).WatchEvent(l)
 
+	if _, err = ins.Claim("0.0.0.0"); err != nil {
+		t.Fatal(err)
+	}
+
+	ins, err = ins.Unclaim("0.0.0.0")
+	if err != nil {
+		t.Error(err)
+	}
+	expectEvent(EvInsUnclaim, ins, l, t)
+
 	if _, err = ins.Claim(ip); err != nil {
 		t.Fatal(err)
 	}

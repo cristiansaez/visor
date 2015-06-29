@@ -52,21 +52,22 @@ type EventType string
 
 // EventTypes.
 const (
-	EvAppReg    = EventType("app-register")
-	EvAppUnreg  = EventType("app-unregister")
-	EvRevReg    = EventType("rev-register")
-	EvRevUnreg  = EventType("rev-unregister")
-	EvProcReg   = EventType("proc-register")
-	EvProcUnreg = EventType("proc-unregister")
-	EvProcAttrs = EventType("proc-attrs")
-	EvInsReg    = EventType("instance-register")
-	EvInsUnreg  = EventType("instance-unregister")
-	EvInsStart  = EventType("instance-start")
-	EvInsStop   = EventType("instance-stop")
-	EvInsFail   = EventType("instance-fail")
-	EvInsExit   = EventType("instance-exit")
-	EvInsLost   = EventType("instance-lost")
-	EvUnknown   = EventType("UNKNOWN")
+	EvAppReg     = EventType("app-register")
+	EvAppUnreg   = EventType("app-unregister")
+	EvRevReg     = EventType("rev-register")
+	EvRevUnreg   = EventType("rev-unregister")
+	EvProcReg    = EventType("proc-register")
+	EvProcUnreg  = EventType("proc-unregister")
+	EvProcAttrs  = EventType("proc-attrs")
+	EvInsReg     = EventType("instance-register")
+	EvInsUnclaim = EventType("instance-unclaim")
+	EvInsUnreg   = EventType("instance-unregister")
+	EvInsStart   = EventType("instance-start")
+	EvInsStop    = EventType("instance-stop")
+	EvInsFail    = EventType("instance-fail")
+	EvInsExit    = EventType("instance-exit")
+	EvInsLost    = EventType("instance-lost")
+	EvUnknown    = EventType("UNKNOWN")
 )
 
 type eventPath int
@@ -174,10 +175,26 @@ func newEvent(src cp.Event) (*Event, error) {
 				}
 				event.Path = EventData{Instance: &match[1]}
 			case pathInsStart:
-				if !src.IsSet() || len(bytes.Fields(src.Body)) < 2 {
+				if !src.IsSet() {
 					break
 				}
-				event.Type = EvInsStart
+				// The start file can be in three different states:
+				// 1. "" - instance got registered or unclaimed
+				// 2. "<ip>" - instance got claimed
+				// 3. "<ip> <host> <port> <tport> - instance got started
+				if len(bytes.Fields(src.Body)) > 1 {
+					event.Type = EvInsStart
+				} else if len(src.Body) == 0 {
+					// The file is empty, so distinguish between registered and
+					// unclaimed by whether the file existed before already.
+					existed, err := pathExistedBefore(src)
+					if err != nil {
+						return nil, err
+					}
+					if existed {
+						event.Type = EvInsUnclaim
+					}
+				}
 				event.Path = EventData{Instance: &match[1]}
 			case pathInsStop:
 				if !src.IsSet() {
@@ -247,7 +264,7 @@ func (e *Event) enrich() error {
 		e.Source, err = getRevision(app, *e.Path.Revision, e.raw)
 	case EvProcReg, EvProcAttrs:
 		e.Source, err = getProc(app, *e.Path.Proc, e.raw)
-	case EvInsReg, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
+	case EvInsReg, EvInsUnclaim, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
 		id, err := strconv.ParseInt(*e.Path.Instance, 10, 64)
 		if err != nil {
 			return err
@@ -258,4 +275,16 @@ func (e *Event) enrich() error {
 		return fmt.Errorf("error enriching event %+v: %s", e.raw, err)
 	}
 	return nil
+}
+
+func pathExistedBefore(e cp.Event) (bool, error) {
+	if e.Rev == 0 {
+		return false, nil
+	}
+
+	sp := e.GetSnapshot()
+	sp.Rev--
+
+	exists, _, err := sp.Exists(e.Path)
+	return exists, err
 }
