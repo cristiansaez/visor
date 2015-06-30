@@ -6,6 +6,7 @@
 package visor
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -173,7 +174,7 @@ func newEvent(src cp.Event) (*Event, error) {
 				}
 				event.Path = EventData{Instance: &match[1]}
 			case pathInsStart:
-				if !src.IsSet() || len(src.Body) == 0 {
+				if !src.IsSet() || len(bytes.Fields(src.Body)) < 2 {
 					break
 				}
 				event.Type = EvInsStart

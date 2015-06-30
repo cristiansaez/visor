@@ -313,12 +313,12 @@ func TestEventInstanceStateChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ins, err = ins.Claim(ip)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	go storeFromSnapshotable(ins).WatchEvent(l)
+
+	if _, err = ins.Claim(ip); err != nil {
+		t.Fatal(err)
+	}
 
 	ins, err = ins.Started(ip, host, port, tPort)
 	if err != nil {
@@ -328,7 +328,6 @@ func TestEventInstanceStateChange(t *testing.T) {
 	if ev.Path.Instance == nil || (*ev.Path.Instance != strconv.FormatInt(ins.ID, 10)) {
 		t.Error("event.Path doesn't contain expected data")
 	}
-
 	instance := ev.Source.(*Instance)
 	if instance.IP != ip || instance.Host != host || instance.Port != port {
 		t.Fatal("instance fields don't match")
@@ -384,6 +383,12 @@ func TestEventFilter(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = ins.Unclaim("1.2.3.4"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ins.Claim("1.2.8.9"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ins.Started("1.2.8.9", "host.com", 9090, 9095); err != nil {
 		t.Fatal(err)
 	}
 	if err := ins.Unregister("common-host", errors.New("exited")); err != nil {
