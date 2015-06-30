@@ -10,7 +10,6 @@ import (
 	"path"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	cp "github.com/soundcloud/cotterpin"
@@ -921,32 +920,15 @@ func (s *Store) GetLostInstances() ([]*Instance, error) {
 
 // WatchInstanceStart sends Instance over the given listener channel which
 // transitioned to start.
+//
+// DEPRECATED: This method is deprecated. WatchEvent should be used directly.
 func (s *Store) WatchInstanceStart(listener chan *Instance, errors chan error) {
-	sp := s.GetSnapshot()
-	for {
-		ev, err := sp.Wait(path.Join(instancesPath, "*", registeredPath))
-		if err != nil {
-			errors <- err
-			return
-		}
-		sp = sp.Join(ev)
-
-		if !ev.IsSet() {
-			continue
-		}
-		idstr := strings.Split(ev.Path, "/")[2]
-
-		id, err := parseInstanceID(idstr)
-		if err != nil {
-			errors <- err
-			return
-		}
-		ins, err := getInstance(id, ev.GetSnapshot())
-		if err != nil {
-			errors <- err
-			return
-		}
-		listener <- ins
+	eventc := make(chan *Event)
+	go func() {
+		listener <- (<-eventc).Source.(*Instance)
+	}()
+	if err := s.WatchEvent(eventc, EvInsReg); err != nil {
+		errors <- err
 	}
 }
 

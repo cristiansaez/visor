@@ -15,7 +15,13 @@ import (
 	cp "github.com/soundcloud/cotterpin"
 )
 
-const charPat = `[-.[:alnum:]]`
+// Event represents a change to a file in the registry.
+type Event struct {
+	Type   EventType // Type of event
+	Path   EventData // Unique part of the event path
+	Source cp.Snapshotable
+	raw    cp.Event // Original event returned by cotterpin
+}
 
 // EventData is used to represent information encoded in the file path.
 type EventData struct {
@@ -23,7 +29,6 @@ type EventData struct {
 	Instance *string
 	Proc     *string
 	Revision *string
-	Service  *string
 }
 
 func (d EventData) String() string {
@@ -39,16 +44,6 @@ func (d EventData) String() string {
 	}
 
 	return fmt.Sprintf("EventData{%s}", strings.Join(fields, ", "))
-}
-
-// An Event represents a change to a file in the registry.
-type Event struct {
-	Type   EventType // Type of event
-	Body   string    // Body of the changed file
-	Source cp.Snapshotable
-	Path   EventData
-	raw    *cp.Event // Original event returned by cotterpin
-	Rev    int64
 }
 
 // EventType is the used to distinguish events.
@@ -73,10 +68,6 @@ const (
 	EvUnknown   = EventType("UNKNOWN")
 )
 
-const (
-	globPlural = "**"
-)
-
 type eventPath int
 
 const (
@@ -88,6 +79,11 @@ const (
 	pathInsStatus
 	pathInsStart
 	pathInsStop
+)
+
+const (
+	charPat    = `[-.[:alnum:]]`
+	globPlural = "**"
 )
 
 var eventPatterns = map[*regexp.Regexp]eventPath{
@@ -105,9 +101,12 @@ func (ev *Event) String() string {
 	return fmt.Sprintf("%#v", ev)
 }
 
-// WatchEventRaw watches for changes to the registry and sends
-// them as *Event objects to the provided channel.
-func (s *Store) WatchEventRaw(listener chan *Event) error {
+// WatchEvent watches for changes on the store, enriches them with the
+// corresponding domain object and sends them as Event object to the given
+// channel.
+// Optionally any number of EventTypes can be given in order to filter which
+// events will be sent over the given channel.
+func (s *Store) WatchEvent(listener chan *Event, filter ...EventType) error {
 	sp := s.GetSnapshot()
 	for {
 		ev, err := sp.Wait(globPlural)
@@ -116,201 +115,146 @@ func (s *Store) WatchEventRaw(listener chan *Event) error {
 		}
 		sp = sp.Join(ev)
 
-		event, err := enrichEvent(&ev, ev)
+		event, err := newEvent(ev)
 		if err != nil {
 			return err
 		}
-
-		listener <- event
-	}
-}
-
-// WatchEvent wraps WatchEventRaw with additional information.
-func (s *Store) WatchEvent(listener chan *Event) error {
-	sp := s.GetSnapshot()
-	for {
-		ev, err := sp.Wait(globPlural)
-		if err != nil {
-			return err
-		}
-		sp = sp.Join(ev)
-
-		event, err := enrichEvent(&ev, ev)
-		if err != nil {
-			return err
-		}
-
-		if event.Type == EvUnknown {
+		if !event.match(filter) {
 			continue
 		}
-
+		if err := event.enrich(); err != nil {
+			return err
+		}
 		listener <- event
 	}
 }
 
-func canonicalizeMetadata(etype EventType, uncanonicalized EventData, s cp.Snapshotable) (source cp.Snapshotable, err error) {
-	var (
-		app  *App
-		rev  *Revision
-		proc *Proc
-		ins  *Instance
-	)
-
-	if uncanonicalized.App != nil {
-		app, err = getApp(*uncanonicalized.App, s)
-
-		if err != nil {
-			return
-		}
+func newEvent(src cp.Event) (*Event, error) {
+	event := &Event{
+		Type: EvUnknown,
+		raw:  src,
 	}
-
-	if uncanonicalized.Revision != nil {
-		rev, err = getRevision(app, *uncanonicalized.Revision, s)
-
-		if err != nil {
-			return
-		}
-	}
-
-	if uncanonicalized.Proc != nil {
-		proc, err = getProc(app, *uncanonicalized.Proc, s)
-		if err != nil {
-			return
-		}
-	}
-
-	if uncanonicalized.Instance != nil {
-		var id int64 = -1
-		if id, err = strconv.ParseInt(*uncanonicalized.Instance, 10, 64); err != nil {
-			return
-		}
-		if ins, err = getInstance(id, s); err != nil {
-			return
-		}
-	}
-
-	switch etype {
-	case EvAppReg:
-		source = app
-	case EvRevReg:
-		source = rev
-	case EvProcReg, EvProcAttrs:
-		source = proc
-	case EvInsReg, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
-		source = ins
-	}
-
-	return
-}
-
-func enrichEvent(src *cp.Event, s cp.Snapshotable) (event *Event, err error) {
-	var (
-		path            = src.Path
-		etype           = EvUnknown
-		uncanonicalized = EventData{}
-
-		canonicalized cp.Snapshotable
-	)
 
 	for re, ev := range eventPatterns {
-		if match := re.FindStringSubmatch(path); match != nil {
+		if match := re.FindStringSubmatch(src.Path); match != nil {
 			switch ev {
 			case pathApp:
-				uncanonicalized.App = &match[1]
-
 				if src.IsSet() {
-					etype = EvAppReg
+					event.Type = EvAppReg
 				} else if src.IsDel() {
-					etype = EvAppUnreg
+					event.Type = EvAppUnreg
 				}
+				event.Path = EventData{App: &match[1]}
 			case pathRev:
-				uncanonicalized.App = &match[1]
-				uncanonicalized.Revision = &match[2]
-
 				if src.IsSet() {
-					etype = EvRevReg
+					event.Type = EvRevReg
 				} else if src.IsDel() {
-					etype = EvRevUnreg
+					event.Type = EvRevUnreg
 				}
+				event.Path = EventData{App: &match[1], Revision: &match[2]}
 			case pathProc:
-				uncanonicalized.App = &match[1]
-				uncanonicalized.Proc = &match[2]
-
 				if src.IsSet() {
-					etype = EvProcReg
+					event.Type = EvProcReg
 				} else if src.IsDel() {
-					etype = EvProcUnreg
+					event.Type = EvProcUnreg
 				}
+				event.Path = EventData{App: &match[1], Proc: &match[2]}
 			case pathProcAttrs:
-				uncanonicalized.App = &match[1]
-				uncanonicalized.Proc = &match[2]
-
-				if src.IsSet() {
-					etype = EvProcAttrs
-				}
-			case pathInsRegistered:
-				uncanonicalized.Instance = &match[1]
-
-				if src.IsSet() {
-					etype = EvInsReg
-				} else if src.IsDel() {
-					etype = EvInsUnreg
-				}
-			case pathInsStart:
-				body := string(src.Body)
-
-				if !src.IsSet() || body == "" {
+				if !src.IsSet() {
 					break
 				}
-
-				uncanonicalized.Instance = &match[1]
-
-				fields := strings.Fields(body)
-				if len(fields) > 1 {
-					etype = EvInsStart
+				event.Type = EvProcAttrs
+				event.Path = EventData{App: &match[1], Proc: &match[2]}
+			case pathInsRegistered:
+				if src.IsSet() {
+					event.Type = EvInsReg
+				} else if src.IsDel() {
+					event.Type = EvInsUnreg
 				}
+				event.Path = EventData{Instance: &match[1]}
+			case pathInsStart:
+				if !src.IsSet() || len(src.Body) == 0 {
+					break
+				}
+				event.Type = EvInsStart
+				event.Path = EventData{Instance: &match[1]}
 			case pathInsStop:
 				if !src.IsSet() {
 					break
 				}
-
-				uncanonicalized.Instance = &match[1]
-				etype = EvInsStop
+				event.Type = EvInsStop
+				event.Path = EventData{Instance: &match[1]}
 			case pathInsStatus:
-				uncanonicalized.Instance = &match[1]
-
 				if !src.IsSet() {
 					break
 				}
-
 				switch InsStatus(src.Body) {
 				case InsStatusRunning:
-					etype = EvInsStart
+					event.Type = EvInsStart
 				case InsStatusExited:
-					etype = EvInsExit
+					event.Type = EvInsExit
 				case InsStatusFailed:
-					etype = EvInsFail
+					event.Type = EvInsFail
 				case InsStatusLost:
-					etype = EvInsLost
+					event.Type = EvInsLost
 				}
+				event.Path = EventData{Instance: &match[1]}
 			}
 			break
 		}
 	}
 
-	if etype != EvUnknown && src.IsSet() {
-		canonicalized, err = canonicalizeMetadata(etype, uncanonicalized, s)
+	return event, nil
+}
+
+func (e *Event) match(filter []EventType) bool {
+	if e.Type == EvUnknown {
+		return false
+	}
+	if len(filter) == 0 {
+		return true
+	}
+	for _, t := range filter {
+		if e.Type == t {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Event) enrich() error {
+	var (
+		app *App
+		err error
+	)
+
+	if !e.raw.IsSet() {
+		return nil
+	}
+
+	if e.Path.App != nil {
+		app, err = getApp(*e.Path.App, e.raw)
 		if err != nil {
-			return nil, fmt.Errorf("error canonicalizing inputs %+v: %s", src, err)
+			return err
 		}
 	}
 
-	return &Event{
-		Type:   etype,
-		Body:   string(src.Body),
-		Source: canonicalized,
-		Path:   uncanonicalized,
-		raw:    src,
-		Rev:    src.Rev,
-	}, nil
+	switch e.Type {
+	case EvAppReg:
+		e.Source, err = app, nil
+	case EvRevReg:
+		e.Source, err = getRevision(app, *e.Path.Revision, e.raw)
+	case EvProcReg, EvProcAttrs:
+		e.Source, err = getProc(app, *e.Path.Proc, e.raw)
+	case EvInsReg, EvInsStart, EvInsStop, EvInsFail, EvInsExit, EvInsLost:
+		id, err := strconv.ParseInt(*e.Path.Instance, 10, 64)
+		if err != nil {
+			return err
+		}
+		e.Source, err = getInstance(id, e.raw)
+	}
+	if err != nil {
+		return fmt.Errorf("error enriching event %+v: %s", e.raw, err)
+	}
+	return nil
 }
