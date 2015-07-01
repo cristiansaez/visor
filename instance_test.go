@@ -379,6 +379,32 @@ func TestInstanceRestarted(t *testing.T) {
 	}
 }
 
+func TestInstanceRestartAndGet(t *testing.T) {
+
+	s := instanceSetup()
+	ip := "10.0.0.1"
+	ins := instanceSetupClaimed("fat-pat", ip)
+
+	ins, err := ins.Started(ip, "fat-pat.com", 9999, 10000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ins.Restarted(InsRestarts{0, 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ins1, err := s.GetInstance(ins.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ins1.Restarts.Fail != 1 {
+		t.Errorf("restarts: got %v, want 1", ins1.Restarts.Fail)
+	}
+}
+
 func TestInstanceFailed(t *testing.T) {
 	ip := "10.0.0.1"
 	ins := instanceSetupClaimed("fat-cat", ip)

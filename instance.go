@@ -691,7 +691,7 @@ func (i *Instance) claimed(ip string) {
 func (i *Instance) getRestarts() (InsRestarts, *cp.File, error) {
 	var restarts InsRestarts
 
-	f, err := i.dir.GetFile(i.dir.Prefix(restartsPath), new(cp.ListIntCodec))
+	f, err := i.dir.GetFile(restartsPath, new(cp.ListIntCodec))
 	if err == nil {
 		fields := f.Value.([]int)
 
