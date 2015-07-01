@@ -925,9 +925,11 @@ func (s *Store) GetLostInstances() ([]*Instance, error) {
 func (s *Store) WatchInstanceStart(listener chan *Instance, errors chan error) {
 	eventc := make(chan *Event)
 	go func() {
-		listener <- (<-eventc).Source.(*Instance)
+		for {
+			listener <- (<-eventc).Source.(*Instance)
+		}
 	}()
-	if err := s.WatchEvent(eventc, EvInsReg); err != nil {
+	if err := s.WatchEvent(eventc, EvInsReg, EvInsUnclaim); err != nil {
 		errors <- err
 	}
 }
