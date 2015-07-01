@@ -465,25 +465,25 @@ func TestWatchInstanceStartAndStop(t *testing.T) {
 		t.Error(err)
 	}
 
-	select {
-	case ins = <-l:
-		// TODO Check other fields
-		if ins.AppName == app && ins.RevisionName == rev && ins.ProcessName == proc {
-			break
-		}
-		t.Errorf("received unexpected instance: %s", ins.String())
-	case err := <-errc:
+	if err := expectInstance(ins, l, errc); err != nil {
 		t.Fatal(err)
-	case <-time.After(time.Second):
-		t.Errorf("expected instance, got timeout")
 	}
 
-	ins, err = ins.Claim("10.0.0.1")
-	if err != nil {
+	if _, err = ins.Claim("10.0.0.99"); err != nil {
 		t.Fatal(err)
 	}
-	ins, err = ins.Started("10.0.0.1", "localhost", 5555, 5556)
-	if err != nil {
+	if _, err = ins.Unclaim("10.0.0.99"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := expectInstance(ins, l, errc); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = ins.Claim("10.0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = ins.Started("10.0.0.1", "localhost", 5555, 5556); err != nil {
 		t.Fatal(err)
 	}
 
@@ -699,5 +699,20 @@ func testInstanceStatus(s *Store, t *testing.T, id int64, status InsStatus) {
 	}
 	if ins.Status != status {
 		t.Errorf("expected instance status to be '%s' got '%s'", status, ins.Status)
+	}
+}
+
+func expectInstance(i *Instance, instancec chan *Instance, errc chan error) error {
+	select {
+	case ins := <-instancec:
+		// TODO Check other fields
+		if ins.AppName == i.AppName && ins.RevisionName == i.RevisionName && ins.ProcessName == i.ProcessName {
+			return nil
+		}
+		return fmt.Errorf("received unexpected instance: %s", ins.String())
+	case err := <-errc:
+		return err
+	case <-time.After(time.Second):
+		return errors.New("expected instance, got timeout")
 	}
 }
