@@ -71,6 +71,37 @@ func (r *Revision) Register() (*Revision, error) {
 	return r, nil
 }
 
+// Update updates a revision in the registry.
+func (r *Revision) Update() (*Revision, error) {
+	sp, err := r.GetSnapshot().FastForward()
+	if err != nil {
+		return nil, err
+	}
+
+	exists, _, err := sp.Exists(r.dir.Name)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf("hihihihi")
+	}
+
+	d, err := r.dir.Join(sp).Set(archiveURLPath, r.ArchiveURL)
+	if err != nil {
+		return nil, err
+	}
+	reg := time.Now()
+	d, err = r.dir.Set(registeredPath, formatTime(reg))
+	if err != nil {
+		return nil, err
+	}
+	r.Registered = reg
+
+	r.dir = d
+
+	return r, nil
+}
+
 // Unregister unregisters a revision from the registry.
 func (r *Revision) Unregister() error {
 	sp, err := r.GetSnapshot().FastForward()
