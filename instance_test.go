@@ -633,6 +633,9 @@ func TestInstanceWaitFailed(t *testing.T) {
 	if want, have := InsStatusFailed, ins.Status; want != have {
 		t.Errorf("want status %s, have %s", want, have)
 	}
+	if want, have := "fail test", ins.Termination.Reason; want != have {
+		t.Errorf("want reason '%s', have '%s'", want, have)
+	}
 }
 
 func TestInstanceWaitUnregister(t *testing.T) {

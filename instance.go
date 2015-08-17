@@ -488,15 +488,20 @@ func (i *Instance) WaitExited() (*Instance, error) {
 
 // WaitFailed blocks until the instance failed.
 func (i *Instance) WaitFailed() (*Instance, error) {
-	for {
-		i, err := i.WaitStatus()
-		if err != nil {
-			return nil, err
-		}
-		if i.Status == InsStatusFailed {
-			break
-		}
+	sp := i.GetSnapshot()
+	ev, err := sp.Wait(i.procFailedPath())
+	if err != nil {
+		return nil, err
 	}
+
+	ins := &Instance{}
+	if _, err := (&cp.JsonCodec{DecodedVal: ins}).Decode(ev.Body); err != nil {
+		return nil, err
+	}
+	i.Status = ins.Status
+	i.Termination = ins.Termination
+	i.dir = i.dir.Join(ev)
+
 	return i, nil
 }
 
