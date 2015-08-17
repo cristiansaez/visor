@@ -123,7 +123,14 @@ func getRevision(app *App, ref string, s cp.Snapshotable) (*Revision, error) {
 	f, err := r.dir.GetFile(archiveURLPath, new(cp.StringCodec))
 	if err != nil {
 		if cp.IsErrNoEnt(err) {
-			err = errorf(ErrNotFound, "archive-url not found for %s:%s", app.Name, ref)
+			exists, _, err := s.GetSnapshot().Exists(r.dir.Name)
+			if err != nil {
+				return nil, err
+			}
+			if !exists {
+				return nil, errorf(ErrNotFound, `revision "%s" not found for app %s`, ref, app.Name)
+			}
+			return nil, errorf(ErrNotFound, "archive-url not found for %s:%s", app.Name, ref)
 		}
 		return nil, err
 	}

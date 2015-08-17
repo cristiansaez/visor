@@ -89,3 +89,16 @@ func TestRevisionUnregister(t *testing.T) {
 		t.Error("Revision still registered")
 	}
 }
+
+func TestRevisionGet(t *testing.T) {
+	_, app := revSetup()
+
+	_, err := app.GetRevision("unknown")
+	if err == nil {
+		t.Fatal("expected error for unknown revision")
+	}
+	want := `revision "unknown" not found for app rev-test`
+	if have := err.Error(); want != have {
+		t.Errorf("want error '%s', have '%s'", want, have)
+	}
+}
