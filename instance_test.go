@@ -579,39 +579,60 @@ func TestInstanceWait(t *testing.T) {
 
 func TestInstanceWaitStop(t *testing.T) {
 	s := instanceSetup()
+
 	ins, err := s.RegisterInstance("bobby", "985245a", "web", "default")
 	if err != nil {
 		t.Fatal(err)
 	}
-	ins, err = ins.Claim("127.0.0.1")
-	if err != nil {
+
+	if _, err = ins.Claim("127.0.0.1"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := ins.Started("127.0.0.1", "localhost", 9000, 9001); err != nil {
 		t.Fatal(err)
 	}
 
-	go func() {
-		if err := ins.Stop(); err != nil {
-			panic(err)
+	go func(i Instance) {
+		if err := i.Stop(); err != nil {
+			t.Fatal(err)
 		}
-	}()
+	}(*ins)
+
 	_, err = ins.WaitStop()
 	if err != nil {
 		t.Fatal(err)
 	}
-	ins, err = s.GetInstance(ins.ID)
+	if want, have := InsStatusStopping, ins.Status; want != have {
+		t.Errorf("want status %s, have %s", want, have)
+	}
+}
+
+func TestInstanceWaitFailed(t *testing.T) {
+	s := instanceSetup()
+
+	ins, err := s.RegisterInstance("broken", "985245a", "web", "default")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ins.Status != InsStatusStopping {
-		t.Error("expected instance to be stopped")
+	if _, err := ins.Claim("127.0.0.1"); err != nil {
+		t.Fatal(err)
 	}
-	// println(ins.GetSnapshot().Rev)
-	// println(ins1.GetSnapshot().Rev)
-	// if ins1.GetSnapshot().Rev <= ins.GetSnapshot().Rev {
-	// 	t.Error("expected new revision to be greater than previous")
-	// }
+	if _, err := ins.Started("127.0.0.1", "localhost", 9000, 9001); err != nil {
+		t.Fatal(err)
+	}
+
+	go func(i Instance) {
+		if _, err := i.Failed("127.0.0.1", errors.New("fail test")); err != nil {
+			t.Fatal(err)
+		}
+	}(*ins)
+
+	if _, err := ins.WaitFailed(); err != nil {
+		t.Fatal(err)
+	}
+	if want, have := InsStatusFailed, ins.Status; want != have {
+		t.Errorf("want status %s, have %s", want, have)
+	}
 }
 
 func TestInstanceWaitUnregister(t *testing.T) {
