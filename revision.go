@@ -7,10 +7,13 @@ package visor
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	cp "github.com/soundcloud/cotterpin"
 )
+
+var RefFormat = regexp.MustCompile(`^[[:alnum:]\-\.]+$`)
 
 // A Revision represents an application revision,
 // identifiable by its `ref`.

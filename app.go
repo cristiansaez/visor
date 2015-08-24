@@ -24,7 +24,6 @@ type App struct {
 	Name       string
 	RepoURL    string
 	Stack      string
-	Head       string
 	Env        map[string]string
 	DeployType string
 	Registered time.Time
@@ -109,18 +108,6 @@ func (a *App) Unregister() error {
 		return errorf(ErrNotFound, `app "%s" not found`, a)
 	}
 	return a.dir.Join(sp).Del("/")
-}
-
-// SetHead sets the application's latest revision
-func (a *App) SetHead(head string) (*App, error) {
-	d, err := a.dir.Set("head", head)
-	if err != nil {
-		return nil, err
-	}
-	a.Head = head
-	a.dir = d
-
-	return a, nil
 }
 
 // SetStack sets the application's stack
@@ -372,13 +359,6 @@ func getApp(name string, s cp.Snapshotable) (*App, error) {
 	app.RepoURL = value["repo-url"].(string)
 	app.Stack = value["stack"].(string)
 	app.DeployType = value["deploy-type"].(string)
-
-	f, err = sp.GetFile(app.dir.Prefix("head"), new(cp.StringCodec))
-	if err == nil {
-		app.Head = f.Value.(string)
-	} else if cp.IsErrNoEnt(err) {
-		err = nil
-	}
 
 	f, err = app.dir.GetFile(registeredPath, new(cp.StringCodec))
 	if err != nil {

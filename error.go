@@ -24,6 +24,7 @@ var (
 	ErrBadProcName     = errors.New("invalid proc type name: only alphanumeric chars allowed")
 	ErrUnauthorized    = errors.New("operation is not permitted")
 	ErrNotFound        = errors.New("object not found")
+	ErrTagShadowing    = errors.New("revision already exists with tag name")
 )
 
 // Error is the wrapper type to express custom errors.
@@ -97,6 +98,11 @@ func IsErrInvalidKey(err error) bool {
 // IsErrInvalidShare is a helper to test for ErrInvalidShare.
 func IsErrInvalidShare(err error) bool {
 	return unwrapErr(err) == ErrInvalidShare
+}
+
+// IsErrTagShadowing is a helper to test for ErrTagShadowing.
+func IsErrTagShadowing(err error) bool {
+	return unwrapErr(err) == ErrTagShadowing
 }
 
 func errorf(err error, format string, args ...interface{}) *Error {
