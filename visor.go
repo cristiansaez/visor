@@ -205,27 +205,6 @@ func (s *Store) Scale(app, rev, proc, env string, factor int) (tickets []*Instan
 	return
 }
 
-// GetScale returns the scale of an app:proc@rev tuple. If the scale isn't found, 0 is returned.
-func (s *Store) GetScale(app string, revid string, proc string) (scale int, rev int64, err error) {
-	sp, err := s.GetSnapshot().FastForward()
-	if err != nil {
-		return
-	}
-
-	path := procInstancesPath(app, revid, proc)
-	count, rev, err := sp.Stat(path, &s.snapshot.Rev)
-
-	// File doesn't exist, assume scale = 0
-	if cp.IsErrNoEnt(err) {
-		return 0, rev, nil
-	}
-	if err != nil {
-		return -1, rev, err
-	}
-
-	return count, rev, nil
-}
-
 // GetLoggers gets the list of bazooka-log services endpoints.
 func (s *Store) GetLoggers() ([]string, error) {
 	sp, err := s.GetSnapshot().FastForward()

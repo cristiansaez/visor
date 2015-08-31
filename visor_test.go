@@ -141,46 +141,6 @@ func TestScaleDown(t *testing.T) {
 	}
 }
 
-func TestGetScale(t *testing.T) {
-	s := visorSetup("/getscale-test")
-	scale := 5
-
-	app := genApp(s)
-	rev := genRevision(app)
-	proc := genProc(app, "scaleproc")
-	env := genEnv(app, "default", map[string]string{})
-
-	scale, _, err := s.GetScale(app.Name, rev.Ref, proc.Name)
-	if err != nil {
-		t.Error(err)
-	}
-	if scale != 0 {
-		t.Error("expected initial scale of 0")
-	}
-
-	_, _, err = s.Scale(app.Name, rev.Ref, proc.Name, env.Ref, 9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err = s.FastForward()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	scale, _, err = s.GetScale(app.Name, rev.Ref, proc.Name)
-	if err != nil {
-		t.Error(err)
-	}
-	if scale != 9 {
-		t.Errorf("expected scale of 9, got %d", scale)
-	}
-
-	scale, _, err = s.GetScale("invalid-app", rev.Ref, proc.Name)
-	if scale != 0 {
-		t.Errorf("expected scale to be 0")
-	}
-}
-
 func TestValidateInput(t *testing.T) {
 	invalidInputs := []string{
 		"",
