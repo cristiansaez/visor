@@ -6,11 +6,9 @@
 package visor
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -101,108 +99,6 @@ func (s *Store) Init() (*Store, error) {
 	s.snapshot = sp
 
 	return s, nil
-}
-
-// Scale creates tickets for either new or existing instances.
-func (s *Store) Scale(app, rev, proc, env string, factor int) (tickets []*Instance, current int, err error) {
-	if err := validateInput(app); err != nil {
-		return nil, -1, errorf(err, "given app not valid: %s (%s)", app, err)
-	}
-	if err := validateInput(rev); err != nil {
-		return nil, -1, errorf(err, "given rev not valid: %s (%s)", rev, err)
-	}
-	if err := validateInput(proc); err != nil {
-		return nil, -1, errorf(err, "given proc not valid: %s (%s)", proc, err)
-	}
-	if err := validateInput(env); err != nil {
-		return nil, -1, errorf(err, "given env not valid: %s (%s)", env, err)
-	}
-	if factor < 0 {
-		return nil, -1, errors.New("scaling factor needs to be a positive integer")
-	}
-
-	sp, err := s.GetSnapshot().FastForward()
-	if err != nil {
-		return
-	}
-
-	exists, _, err := sp.Exists(path.Join(appsPath, app, revsPath, rev))
-	if err != nil {
-		return
-	}
-	if !exists {
-		return nil, -1, errorf(ErrNotFound, "rev '%s' not found for app '%s'", rev, app)
-	}
-	exists, _, err = sp.Exists(path.Join(appsPath, app, procsPath, proc))
-	if err != nil {
-		return
-	}
-	if !exists {
-		return nil, -1, errorf(ErrNotFound, "proc '%s' not found", proc)
-	}
-	exists, _, err = sp.Exists(path.Join(appsPath, app, envsPath, env))
-	if err != nil {
-		return
-	}
-	if !exists {
-		return nil, -1, errorf(ErrNotFound, "env '%s' not found", env)
-	}
-
-	s.snapshot = sp
-
-	ids, err := getInstanceIds(app, rev, proc, sp)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	is := []*Instance{}
-	for _, id := range ids {
-		// TODO parallelize the instance retrieval and order after (xla)
-		i, err := getInstance(id, s)
-		if err != nil {
-			return nil, -1, err
-		}
-
-		if i.Env != env {
-			continue
-		}
-
-		is = append(is, i)
-	}
-
-	current = len(is)
-
-	if factor > current {
-		// Scale up
-		ntickets := factor - current
-
-		for i := 0; i < ntickets; i++ {
-			ticket, err := s.RegisterInstance(app, rev, proc, env)
-			if err != nil {
-				return nil, -1, err
-			}
-			tickets = append(tickets, ticket)
-
-			s.snapshot = s.GetSnapshot().Join(ticket)
-		}
-	} else if factor < current {
-		// Scale down
-		stops := current - factor
-		for i := 0; i < stops; i++ {
-			ins := is[i]
-
-			err = ins.Stop()
-			if err != nil {
-				if IsErrInvalidState(err) {
-					err = errorf(ErrInvalidState, "instance '%d' isn't running", ins.ID)
-				}
-				return nil, -1, err
-			}
-
-			tickets = append(tickets, ins)
-		}
-	}
-	return
 }
 
 // GetLoggers gets the list of bazooka-log services endpoints.
@@ -349,15 +245,4 @@ func timestamp() string {
 
 func parseTime(val string) (time.Time, error) {
 	return time.Parse(time.RFC3339, val)
-}
-
-func validateInput(s string) error {
-	if len(s) < 1 {
-		return errorf(ErrInvalidArgument, "input can't be zero length")
-	}
-	validInput := regexp.MustCompile(`^[[:alnum:]\-\.]+$`)
-	if !validInput.MatchString(s) {
-		return errorf(ErrInvalidArgument, "input only allows alphanumeric characters and -")
-	}
-	return nil
 }
