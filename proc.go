@@ -297,7 +297,17 @@ func getProc(app *App, name string, s cp.Snapshotable) (*Proc, error) {
 
 	port, err := p.dir.GetFile(procsPortPath, new(cp.IntCodec))
 	if err != nil {
-		return nil, errorf(ErrNotFound, "port not found for %s-%s", app.Name, name)
+		if cp.IsErrNoEnt(err) {
+			exists, _, err := s.GetSnapshot().Exists(p.dir.Name)
+			if err != nil {
+				return nil, err
+			}
+			if !exists {
+				return nil, errorf(ErrNotFound, `proc "%s" not found for app %s`, name, app.Name)
+			}
+			return nil, errorf(ErrNotFound, "port not found for %s:%s", app.Name, name)
+		}
+		return nil, err
 	}
 	p.Port = port.Value.(int)
 
