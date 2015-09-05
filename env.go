@@ -146,7 +146,14 @@ func getEnv(app *App, ref string, s cp.Snapshotable) (*Env, error) {
 	_, err := e.dir.GetFile(varsPath, &cp.JsonCodec{DecodedVal: &e.Vars})
 	if err != nil {
 		if cp.IsErrNoEnt(err) {
-			err = errorf(ErrNotFound, `vars not found for "%s"`, ref)
+			exists, _, err := s.GetSnapshot().Exists(e.dir.Name)
+			if err != nil {
+				return nil, err
+			}
+			if !exists {
+				return nil, errorf(ErrNotFound, `env "%s" not found for app %s`, ref, app.Name)
+			}
+			return nil, errorf(ErrNotFound, "vars not found for %s#%s", app.Name, ref)
 		}
 		return nil, err
 	}
