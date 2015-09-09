@@ -18,7 +18,7 @@ import (
 
 // SegenaVersion encodes the expected tree layout and MUST be increased
 // whenever breaking changes are introduced.
-const SchemaVersion = 6
+const SchemaVersion = 7
 
 // Defaults and paths
 const (
