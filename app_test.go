@@ -297,6 +297,30 @@ func TestAppGetProcs(t *testing.T) {
 	}
 }
 
+func TestAppGetInstances(t *testing.T) {
+	s, app := appSetup("likes")
+
+	for _, name := range []string{"web", "api", "worker"} {
+		if _, err := s.NewProc(app, name).Register(); err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < 3; i++ {
+			_, err := s.RegisterInstance("likes", "rev123", name, "default")
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	instances, err := app.GetInstances()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want, have := 9, len(instances); want != have {
+		t.Errorf("want %d instances, have %d", want, have)
+	}
+}
+
 func TestApps(t *testing.T) {
 	s, _ := appSetup("mat-the-sponge")
 	names := map[string]bool{"cat": true, "dog": true, "lol": true}

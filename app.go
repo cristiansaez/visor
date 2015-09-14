@@ -283,6 +283,23 @@ func (a *App) GetProcs() (procs []*Proc, err error) {
 	return
 }
 
+// GetInstances returns all running instances for the app.
+func (a *App) GetInstances() ([]*Instance, error) {
+	procs, err := a.GetProcs()
+	if err != nil {
+		return nil, err
+	}
+	var result []*Instance
+	for _, proc := range procs {
+		instances, err := proc.GetInstances()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, instances...)
+	}
+	return result, nil
+}
+
 // WatchEvent watches for events related to the app
 func (a *App) WatchEvent(listener chan *Event) {
 	ch := make(chan *Event)
