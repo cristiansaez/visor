@@ -120,6 +120,14 @@ func TestTagList(t *testing.T) {
 	if len(tags) != len(tags1) {
 		t.Error("GetTags didn't return correct amount of tags")
 	}
+
+	tags2, err := rev.GetTags()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tags) != len(tags2) {
+		t.Error("GetTags didn't return correct amount of tags")
+	}
 }
 
 func TestTagLookup(t *testing.T) {

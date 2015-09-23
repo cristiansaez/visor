@@ -96,6 +96,22 @@ func (a *App) GetTag(name string) (*Tag, error) {
 	return getTag(a, name, sp)
 }
 
+// GetTags retrieves all tags for the revision.
+func (r *Revision) GetTags() ([]*Tag, error) {
+	tags, err := r.App.GetTags()
+	if err != nil {
+		return nil, err
+	}
+
+	rtags := []*Tag{}
+	for _, tag := range tags {
+		if tag.Ref == r.Ref {
+			rtags = append(rtags, tag)
+		}
+	}
+	return rtags, nil
+}
+
 // GetTags returns a list of all Tags for the app.
 func (a *App) GetTags() ([]*Tag, error) {
 	sp, err := a.GetSnapshot().FastForward()
