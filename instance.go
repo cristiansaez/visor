@@ -982,7 +982,7 @@ func getInstance(id int64, s cp.Snapshotable) (*Instance, error) {
 			i.Status = InsStatusRunning
 			i.Port, err = strconv.Atoi(fields[1])
 			if err != nil {
-				panic("invalid port number: " + fields[1])
+				return nil, errorf(ErrInvalidPort, "invalid port: " + fields[1])
 			}
 		}
 		if len(fields) > 2 { // Hostname
@@ -991,7 +991,7 @@ func getInstance(id int64, s cp.Snapshotable) (*Instance, error) {
 		if len(fields) > 3 { // TelePort
 			i.TelePort, err = strconv.Atoi(fields[3])
 			if err != nil {
-				panic("invalid port number: " + fields[3])
+				return nil, errorf(ErrInvalidPort, "invalid teleport: " + fields[3])
 			}
 		}
 	}

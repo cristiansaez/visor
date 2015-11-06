@@ -17,10 +17,11 @@ var (
 	ErrConflict        = errors.New("object already exists")
 	ErrInsClaimed      = errors.New("instance is already claimed")
 	ErrInvalidArgument = errors.New("invalid argument")
-	ErrInvalidKey      = errors.New("invalid key")
-	ErrInvalidState    = errors.New("invalid state")
 	ErrInvalidFile     = errors.New("invalid file")
+	ErrInvalidKey      = errors.New("invalid key")
+	ErrInvalidPort     = errors.New("invalid port")
 	ErrInvalidShare    = errors.New("invalid share")
+	ErrInvalidState    = errors.New("invalid state")
 	ErrBadProcName     = errors.New("invalid proc type name: only alphanumeric chars allowed")
 	ErrUnauthorized    = errors.New("operation is not permitted")
 	ErrNotFound        = errors.New("object not found")
@@ -75,9 +76,9 @@ func IsErrInsClaimed(err error) bool {
 	return unwrapErr(err) == ErrInsClaimed
 }
 
-// IsErrInvalidState is a helper to test for ErrInvalidState.
-func IsErrInvalidState(err error) bool {
-	return unwrapErr(err) == ErrInvalidState
+// IsErrInvalidArgument is a helper to test for ErrInvalidArgument.
+func IsErrInvalidArgument(err error) bool {
+	return unwrapErr(err) == ErrInvalidArgument
 }
 
 // IsErrInvalidFile is a helper to test for ErrInvalidFile.
@@ -85,19 +86,24 @@ func IsErrInvalidFile(err error) bool {
 	return unwrapErr(err) == ErrInvalidFile
 }
 
-// IsErrInvalidArgument is a helper to test for ErrInvalidArgument.
-func IsErrInvalidArgument(err error) bool {
-	return unwrapErr(err) == ErrInvalidArgument
-}
-
 // IsErrInvalidKey is a helper to test for ErrInvalidKey.
 func IsErrInvalidKey(err error) bool {
 	return unwrapErr(err) == ErrInvalidKey
 }
 
+// IsErrInvalidPort is a helper to test for ErrInvalidPort.
+func IsErrInvalidPort(err error) bool {
+	return unwrapErr(err) == ErrInvalidPort
+}
+
 // IsErrInvalidShare is a helper to test for ErrInvalidShare.
 func IsErrInvalidShare(err error) bool {
 	return unwrapErr(err) == ErrInvalidShare
+}
+
+// IsErrInvalidState is a helper to test for ErrInvalidState.
+func IsErrInvalidState(err error) bool {
+	return unwrapErr(err) == ErrInvalidState
 }
 
 // IsErrTagShadowing is a helper to test for ErrTagShadowing.

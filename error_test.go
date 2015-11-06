@@ -93,3 +93,12 @@ func TestIsErrInvalidKey(t *testing.T) {
 		{NewError(ErrInvalidKey, "invalid key"), true},
 	})
 }
+
+func TestIsErrInvalidPort(t *testing.T) {
+	testErrFn(t, IsErrInvalidPort, []errorCase{
+		{nil, false},
+		{errors.New("error"), false},
+		{cp.NewError(cp.ErrBadPath, "bad path"), false},
+		{NewError(ErrInvalidPort, "invalid port"), true},
+	})
+}
