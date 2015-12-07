@@ -20,6 +20,7 @@ import (
 type Event struct {
 	Type   EventType // Type of event
 	Path   EventData // Unique part of the event path
+	Rev    int64
 	Source cp.Snapshotable
 	raw    cp.Event // Original event returned by cotterpin
 }
@@ -134,6 +135,7 @@ func (s *Store) WatchEvent(listener chan *Event, filter ...EventType) error {
 func newEvent(src cp.Event) (*Event, error) {
 	event := &Event{
 		Type: EvUnknown,
+		Rev:  src.Rev,
 		raw:  src,
 	}
 
